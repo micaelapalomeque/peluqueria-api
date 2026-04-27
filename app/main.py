@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.database import Base, engine
 from app import models
-from app.routers import clientes, servicios, turnos
+from app.routers import clientes, servicios, turnos, pagos
 
 Base.metadata.create_all(bind=engine)
 
@@ -10,6 +10,7 @@ app = FastAPI()
 app.include_router(clientes.router)
 app.include_router(servicios.router)
 app.include_router(turnos.router)
+app.include_router(pagos.router)
 
 
 @app.get("/")

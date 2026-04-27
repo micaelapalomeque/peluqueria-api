@@ -80,3 +80,35 @@ class TurnoResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+##################################################################3
+
+#PAGOS
+###################################################################
+class PagoCreate(BaseModel):
+    turno_id: Optional[int] = None
+    cliente_id: Optional[int] = None
+    servicio_id: Optional[int] = None
+    monto: Decimal
+    metodo_pago: str  # efectivo, transferencia, mp, etc
+    tipo_pago: str    # seña, total
+    estado_pago: str  # pendiente, pagado
+    descripcion: Optional[str] = None
+    observacion: Optional[str] = None
+
+
+class PagoResponse(BaseModel):
+    pago_id: int
+    turno_id: Optional[int]
+    cliente_id: Optional[int]
+    servicio_id: Optional[int]
+    monto: Decimal
+    metodo_pago: str
+    tipo_pago: str
+    estado_pago: str
+    fecha_pago: datetime
+    descripcion: Optional[str]
+    observacion: Optional[str]
+
+    class Config:
+        orm_mode = True
