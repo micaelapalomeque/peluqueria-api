@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,validator
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
@@ -34,20 +34,28 @@ class ClienteUpdate(BaseModel):
 class ServicioCreate(BaseModel):
     nombre: str
     duracion: int
-    precio: Decimal
+    precio_total: Decimal
+    monto_senia: Decimal
+    @validator("monto_senia")
+    def validar_senia(cls, v, values):
+        if "precio_total" in values and v > values["precio_total"]:
+            raise ValueError("La seña no puede ser mayor al precio total")
+        return v
 
 
 class ServicioUpdate(BaseModel):
     nombre: Optional[str] = None
     duracion: Optional[int] = None
-    precio: Optional[Decimal] = None
+    precio_total: Optional[Decimal] = None
+    monto_senia: Optional[Decimal] = None
 
 
 class ServicioResponse(BaseModel):
     id: int
     nombre: str
     duracion: int
-    precio: Decimal
+    precio_total: Decimal
+    monto_senia: Decimal
     activo: bool
 
     class Config:
@@ -63,7 +71,7 @@ class TurnoCreate(BaseModel):
     servicio_id: int
     fecha_hora_inicio: datetime
     observacion: Optional[str] = None
-    monto_senia: Optional[Decimal] = None
+    
 
 
 class TurnoResponse(BaseModel):

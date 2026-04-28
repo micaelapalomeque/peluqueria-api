@@ -1,6 +1,8 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.database import SessionLocal
 from app import models, schemas
 
@@ -20,13 +22,20 @@ def crear_servicio(servicio: schemas.ServicioCreate, db: Session = Depends(get_d
     if servicio.duracion <= 0:
         raise HTTPException(status_code=400, detail="La duración debe ser mayor a 0")
 
-    if servicio.precio <= 0:
-        raise HTTPException(status_code=400, detail="El precio debe ser mayor a 0")
+    if servicio.precio_total <= 0:
+        raise HTTPException(status_code=400, detail="El precio total debe ser mayor a 0")
+
+    if servicio.monto_senia <= 0:
+        raise HTTPException(status_code=400, detail="La seña debe ser mayor a 0")
+
+    if servicio.monto_senia > servicio.precio_total:
+        raise HTTPException(status_code=400, detail="La seña no puede ser mayor al precio total")
 
     nuevo_servicio = models.Servicio(
         nombre=servicio.nombre,
         duracion=servicio.duracion,
-        precio=servicio.precio,
+        precio_total=servicio.precio_total,
+        monto_senia=servicio.monto_senia,
         activo=True
     )
 
@@ -63,6 +72,9 @@ def modificar_servicio(
     if not servicio:
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
 
+    nuevo_precio_total = datos.precio_total if datos.precio_total is not None else servicio.precio_total
+    nueva_senia = datos.monto_senia if datos.monto_senia is not None else servicio.monto_senia
+
     if datos.nombre is not None:
         servicio.nombre = datos.nombre
 
@@ -71,10 +83,17 @@ def modificar_servicio(
             raise HTTPException(status_code=400, detail="La duración debe ser mayor a 0")
         servicio.duracion = datos.duracion
 
-    if datos.precio is not None:
-        if datos.precio <= 0:
-            raise HTTPException(status_code=400, detail="El precio debe ser mayor a 0")
-        servicio.precio = datos.precio
+    if nuevo_precio_total <= 0:
+        raise HTTPException(status_code=400, detail="El precio total debe ser mayor a 0")
+
+    if nueva_senia <= 0:
+        raise HTTPException(status_code=400, detail="La seña debe ser mayor a 0")
+
+    if nueva_senia > nuevo_precio_total:
+        raise HTTPException(status_code=400, detail="La seña no puede ser mayor al precio total")
+
+    servicio.precio_total = nuevo_precio_total
+    servicio.monto_senia = nueva_senia
 
     db.commit()
     db.refresh(servicio)

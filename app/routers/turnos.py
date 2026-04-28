@@ -1,7 +1,9 @@
 from typing import List
 from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.database import SessionLocal
 from app import models, schemas
 
@@ -53,10 +55,12 @@ def crear_turno(turno: schemas.TurnoCreate, db: Session = Depends(get_db)):
         servicio_id=turno.servicio_id,
         fecha_hora_inicio=turno.fecha_hora_inicio,
         fecha_hora_fin=fecha_hora_fin,
+        monto_total=servicio.precio_total,
+        monto_senia=servicio.monto_senia,
         estado="PENDIENTE",
+        estado_senia="PENDIENTE",
         observacion=turno.observacion,
-        monto_senia=turno.monto_senia,
-        estado_senia="PENDIENTE" if turno.monto_senia else "SIN_SENIA"
+        link_pago_senia=None
     )
 
     db.add(nuevo_turno)
@@ -106,8 +110,8 @@ def marcar_asistido(turno_id: int, db: Session = Depends(get_db)):
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
 
-    if turno.estado != "PENDIENTE":
-        raise HTTPException(status_code=400, detail="Solo se puede marcar como asistido un turno pendiente")
+    if turno.estado != "CONFIRMADO":
+        raise HTTPException(status_code=400, detail="Solo se puede marcar como asistido un turno confirmado")
 
     turno.estado = "ASISTIDO"
 
@@ -124,8 +128,8 @@ def marcar_ausente(turno_id: int, db: Session = Depends(get_db)):
     if not turno:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
 
-    if turno.estado != "PENDIENTE":
-        raise HTTPException(status_code=400, detail="Solo se puede marcar como ausente un turno pendiente")
+    if turno.estado not in ["PENDIENTE", "CONFIRMADO"]:
+        raise HTTPException(status_code=400, detail="Solo se puede marcar como ausente un turno pendiente o confirmado")
 
     turno.estado = "AUSENTE"
 

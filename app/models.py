@@ -33,7 +33,8 @@ class Servicio(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
     duracion = Column(Integer, nullable=False)
-    precio = Column(Numeric(10, 2), nullable=False)
+    precio_total = Column(Numeric(10, 2), nullable=False)
+    monto_senia = Column(Numeric(10, 2), nullable=True)
     activo = Column(Boolean, nullable=False, default=True)
 
     turnos = relationship("Turno", back_populates="servicio")
@@ -46,18 +47,22 @@ class Turno(Base):
     turno_id = Column(Integer, primary_key=True, index=True)
     cliente_id = Column(Integer, ForeignKey("cliente.id"), nullable=False)
     servicio_id = Column(Integer, ForeignKey("servicio.id"), nullable=False)
+
     fecha_hora_inicio = Column(DateTime, nullable=False)
     fecha_hora_fin = Column(DateTime, nullable=False)
+
+    monto_total = Column(Numeric(10, 2), nullable=False)
+    monto_senia = Column(Numeric(10, 2), nullable=False)
+
     estado = Column(String(50), nullable=False)
-    observacion = Column(String(255))
-    monto_senia = Column(Numeric(10, 2))
-    estado_senia = Column(String(50))
+    estado_senia = Column(String(50), nullable=False)
     link_pago_senia = Column(String(255))
+
+    observacion = Column(String(255))
 
     cliente = relationship("Cliente", back_populates="turnos")
     servicio = relationship("Servicio", back_populates="turnos")
     pagos = relationship("Pago", back_populates="turno")
-
 
 class Pago(Base):
     __tablename__ = "pago"
