@@ -82,19 +82,35 @@ class TurnoCreate(BaseModel):
     fecha_hora_inicio: datetime
     observacion:       Optional[str] = None
 
+class ClienteResumen(BaseModel):
+    id: int
+    nombre: str
+    celular: str
+
+    class Config:
+        orm_mode = True
+
+class ServicioResumen(BaseModel):
+    id: int
+    nombre: str
+
+    class Config:
+        orm_mode = True
 
 class TurnoResponse(BaseModel):
-    turno_id: int
+    turno_id:          int
+    cliente_id:        int
+    servicio_id:       int
+    cliente:           ClienteResumen        # NUEVO
+    servicio:          ServicioResumen       # NUEVO
     fecha_hora_inicio: datetime
-    fecha_hora_fin: datetime
-    monto_total: Decimal
-    monto_senia: Decimal
-    estado: str
-    estado_senia: str
-    link_pago_senia: Optional[str] = None
-    observacion: Optional[str] = None
-    cliente: ClienteResponse
-    servicio: ServicioResponse
+    fecha_hora_fin:    datetime
+    monto_total:       Decimal
+    monto_senia:       Optional[Decimal] = None
+    estado:            str
+    estado_senia:      Optional[str] = None
+    link_pago_senia:   Optional[str] = None
+    observacion:       Optional[str] = None
 
     class Config:
         orm_mode = True
