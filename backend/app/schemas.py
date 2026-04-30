@@ -4,6 +4,7 @@ from typing import Optional, Literal
 from decimal import Decimal
 
 
+
 # ── ENUMS como Literal ────────────────────────────────────────────────────────
 
 MetodoPago  = Literal['efectivo', 'transferencia', 'mp', 'debito', 'credito']
@@ -83,17 +84,17 @@ class TurnoCreate(BaseModel):
 
 
 class TurnoResponse(BaseModel):
-    turno_id:          int
-    cliente_id:        int
-    servicio_id:       int
+    turno_id: int
     fecha_hora_inicio: datetime
-    fecha_hora_fin:    datetime
-    monto_total:       Decimal
-    monto_senia:       Optional[Decimal] = None
-    estado:            str
-    estado_senia:      Optional[str] = None
-    link_pago_senia:   Optional[str] = None
-    observacion:       Optional[str] = None
+    fecha_hora_fin: datetime
+    monto_total: Decimal
+    monto_senia: Decimal
+    estado: str
+    estado_senia: str
+    link_pago_senia: Optional[str] = None
+    observacion: Optional[str] = None
+    cliente: ClienteResponse
+    servicio: ServicioResponse
 
     class Config:
         orm_mode = True
