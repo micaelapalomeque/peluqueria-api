@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import api from "../api"
 import ModalTurno from "../components/ModalTurno"
-
-// ─────────────────────────────────────────────
-// CONSTANTES
-// ─────────────────────────────────────────────
+import { TEMA } from "../theme"
 
 const HORARIOS = [
   "08:00","08:30","09:00","09:30","10:00","10:30",
@@ -14,18 +11,7 @@ const HORARIOS = [
   "20:00","20:30","21:00","21:30","22:00",
 ]
 
-const COLORES_ESTADO = {
-  reservado:  { bg:"#1f1a0a", border:"#3d3520", hora:"#cc9933", badge:"#2a2010", badgeBorder:"#3d3020", texto:"#cc9933" },
-  confirmado: { bg:"#2a0a0a", border:"#5a1010", hora:"#ff3333", badge:"#3d0f0f", badgeBorder:"#5a1010", texto:"#ff3333" },
-  asistido:   { bg:"#0f1f0f", border:"#2a3d2a", hora:"#5aaa5a", badge:"#1a3a1a", badgeBorder:"#2a5a2a", texto:"#5aaa5a" },
-  completado: { bg:"#0f1f0f", border:"#2a3d2a", hora:"#5aaa5a", badge:"#1a3a1a", badgeBorder:"#2a5a2a", texto:"#5aaa5a" },
-  ausente:    { bg:"#1e1e1e", border:"#333",    hora:"#777",    badge:"#2a2a2a", badgeBorder:"#444",    texto:"#777"    },
-  cancelado:  { bg:"#1e1e1e", border:"#333",    hora:"#555",    badge:"#2a2a2a", badgeBorder:"#444",    texto:"#555"    },
-}
-
-// ─────────────────────────────────────────────
-// HELPER — genera 7 días desde un offset de semana
-// ─────────────────────────────────────────────
+const COLORES_ESTADO = TEMA.estados
 
 function generarDias(offset = 0) {
   const nombres = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"]
@@ -52,10 +38,6 @@ function generarDias(offset = 0) {
     }
   })
 }
-
-// ─────────────────────────────────────────────
-// COMPONENTE — Buscador con dropdown
-// ─────────────────────────────────────────────
 
 function Buscador({ label, placeholder, items, onSeleccionar, campoSecundario, textoSecundario }) {
   const [query, setQuery]               = useState("")
@@ -138,10 +120,6 @@ function Buscador({ label, placeholder, items, onSeleccionar, campoSecundario, t
   )
 }
 
-// ─────────────────────────────────────────────
-// COMPONENTE — Modal para crear turno
-// ─────────────────────────────────────────────
-
 function ModalNuevoTurno({ horario, dia, onCerrar, onCreado }) {
   const [clienteSeleccionado,  setClienteSeleccionado]  = useState(null)
   const [servicioSeleccionado, setServicioSeleccionado] = useState(null)
@@ -185,7 +163,7 @@ function ModalNuevoTurno({ horario, dia, onCerrar, onCreado }) {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
           <div>
             <p style={{ fontSize:"15px", fontWeight:500, color:"#f0f0f0", margin:0 }}>Nuevo turno</p>
-            <p style={{ fontSize:"12px", color:"#CC0000", margin:"2px 0 0", textTransform:"capitalize" }}>
+            <p style={{ fontSize:"12px", color:TEMA.primario, margin:"2px 0 0", textTransform:"capitalize" }}>
               {dia.titulo} · {horario}
             </p>
           </div>
@@ -201,10 +179,10 @@ function ModalNuevoTurno({ horario, dia, onCerrar, onCreado }) {
             />
           </div>
         </div>
-        {error && <p style={{ fontSize:"12px", color:"#ff3333", marginTop:"10px" }}>{error}</p>}
+        {error && <p style={{ fontSize:"12px", color:TEMA.primarioHover, marginTop:"10px" }}>{error}</p>}
         <div style={{ marginTop:"1.25rem" }}>
           <button onClick={confirmar} disabled={!listo || cargando}
-            style={{ width:"100%", padding:"9px", borderRadius:"6px", background: listo ? "#CC0000" : "#5a1010", border:"none", color: listo ? "white" : "#888", fontSize:"13px", fontWeight:500, cursor: listo ? "pointer" : "not-allowed" }}>
+            style={{ width:"100%", padding:"9px", borderRadius:"6px", background: listo ? TEMA.primario : TEMA.primarioBorder, border:"none", color: listo ? "white" : "#888", fontSize:"13px", fontWeight:500, cursor: listo ? "pointer" : "not-allowed" }}>
             {cargando ? "Creando..." : "Confirmar turno"}
           </button>
           <button onClick={onCerrar}
@@ -216,10 +194,6 @@ function ModalNuevoTurno({ horario, dia, onCerrar, onCreado }) {
     </div>
   )
 }
-
-// ─────────────────────────────────────────────
-// COMPONENTE PRINCIPAL — Turnos
-// ─────────────────────────────────────────────
 
 function Turnos() {
   const [offsetSemana,      setOffsetSemana]      = useState(0)
@@ -260,25 +234,21 @@ function Turnos() {
   }
 
   return (
-    <div style={{ flex:1, padding:"1.5rem", background:"#1a1a1a", overflowY:"auto" }}>
+    <div style={{ flex:1, padding:"1.5rem", background:TEMA.fondo, overflowY:"auto" }}>
 
-      {/* Encabezado */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"1.25rem" }}>
         <div>
-          <p style={{ fontSize:"16px", fontWeight:500, color:"#f0f0f0", margin:0, textTransform:"capitalize" }}>
+          <p style={{ fontSize:"16px", fontWeight:500, color:TEMA.textoPrimario, margin:0, textTransform:"capitalize" }}>
             {diaSeleccionado.titulo}
           </p>
-          <p style={{ fontSize:"12px", color:"#888", margin:"2px 0 0" }}>Turnos del día</p>
+          <p style={{ fontSize:"12px", color:TEMA.textoSecundario, margin:"2px 0 0" }}>Turnos del día</p>
         </div>
         <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
-          <button
-            onClick={() => irAOffset(0)}
-            style={{ padding:"6px 12px", borderRadius:"6px", border:"0.5px solid #333", background:"#242424", color:"#888", fontSize:"12px", cursor:"pointer" }}
-          >
+          <button onClick={() => irAOffset(0)}
+            style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background:TEMA.superficie, color:TEMA.textoSecundario, fontSize:"12px", cursor:"pointer" }}>
             Hoy
           </button>
-          <input
-            type="date"
+          <input type="date"
             onChange={e => {
               const val = e.target.value
               if (!val) return
@@ -296,75 +266,66 @@ function Turnos() {
               const diaEncontrado = diasNuevos.find(d => d.fecha === fechaStr) || diasNuevos[0]
               setDiaSeleccionado(diaEncontrado)
             }}
-            style={{ padding:"6px 10px", background:"#242424", border:"0.5px solid #333", borderRadius:"6px", color:"#f0f0f0", fontSize:"12px", cursor:"pointer" }}
+            style={{ padding:"6px 10px", background:TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color:TEMA.textoPrimario, fontSize:"12px", cursor:"pointer" }}
           />
         </div>
       </div>
 
-    {/* Selector de días con flechas */}
-<div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"1.25rem" }}>
-  <button
-    onClick={() => irAOffset(offsetSemana - 1)}
-    style={{ padding:"6px 10px", borderRadius:"6px", border:"0.5px solid #333", background:"#242424", color:"#888", cursor:"pointer", flexShrink:0 }}
-  >←</button>
+      <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"1.25rem" }}>
+        <button onClick={() => irAOffset(offsetSemana - 1)}
+          style={{ padding:"6px 10px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background:TEMA.superficie, color:TEMA.textoSecundario, cursor:"pointer", flexShrink:0 }}>←</button>
 
-  <div style={{ display:"flex", gap:"6px", flex:1, justifyContent:"center" }}>
-    {dias.map(dia => {
-      const activo = dia.fecha === diaSeleccionado.fecha
-      return (
-        <button
-          key={dia.fecha}
-          onClick={() => setDiaSeleccionado(dia)}
-          style={{
-            padding:"8px 12px", borderRadius:"8px", minWidth:"64px",
-            border:      activo ? "0.5px solid #CC0000" : "0.5px solid #333",
-            background:  activo ? "#2a0a0a" : "#242424",
-            color:       activo ? "#ff3333" : dia.esPasado ? "#555" : "#888",
-            cursor:"pointer", textAlign:"center",
-            opacity: dia.esPasado ? 0.7 : 1,
-          }}
-        >
-          <div style={{ fontSize:"11px" }}>{dia.label}</div>
-          <div style={{ fontSize:"15px", fontWeight:500 }}>{dia.numero}</div>
-          {dia.esHoy && <div style={{ fontSize:"9px", color:"#CC0000" }}>hoy</div>}
-        </button>
-      )
-    })}
-  </div>
+        <div style={{ display:"flex", gap:"6px", flex:1, justifyContent:"center" }}>
+          {dias.map(dia => {
+            const activo = dia.fecha === diaSeleccionado.fecha
+            return (
+              <button key={dia.fecha} onClick={() => setDiaSeleccionado(dia)}
+                style={{
+                  padding:"8px 12px", borderRadius:"8px", minWidth:"64px",
+                  border:      activo ? `0.5px solid ${TEMA.primario}` : `0.5px solid ${TEMA.borde}`,
+                  background:  activo ? TEMA.primarioBg : TEMA.superficie,
+                  color:       activo ? TEMA.primarioHover : dia.esPasado ? TEMA.textoTerciario : TEMA.textoSecundario,
+                  cursor:"pointer", textAlign:"center",
+                  opacity: dia.esPasado ? 0.7 : 1,
+                }}>
+                <div style={{ fontSize:"11px" }}>{dia.label}</div>
+                <div style={{ fontSize:"15px", fontWeight:500 }}>{dia.numero}</div>
+                {dia.esHoy && <div style={{ fontSize:"9px", color:TEMA.primario }}>hoy</div>}
+              </button>
+            )
+          })}
+        </div>
 
-  <button
-    onClick={() => irAOffset(offsetSemana + 1)}
-    style={{ padding:"6px 10px", borderRadius:"6px", border:"0.5px solid #333", background:"#242424", color:"#888", cursor:"pointer", flexShrink:0 }}
-  >→</button>
-</div>
+        <button onClick={() => irAOffset(offsetSemana + 1)}
+          style={{ padding:"6px 10px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background:TEMA.superficie, color:TEMA.textoSecundario, cursor:"pointer", flexShrink:0 }}>→</button>
+      </div>
 
-      {/* Grilla de turnos */}
       {cargando ? (
-        <p style={{ color:"#888", fontSize:"13px" }}>Cargando...</p>
+        <p style={{ color:TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p>
       ) : (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(138px, 1fr))", gap:"10px" }}>
           {HORARIOS.map(horario => {
             const turno = turnoDeEsteHorario(horario)
 
             if (!turno) {
+              const fechaHorario = new Date(diaSeleccionado.fecha + "T" + horario + ":00")
+              const esPasado = fechaHorario < new Date()
               return (
-                <div
-                  key={horario}
-                  onClick={() => setModalHorario(horario)}
-                  style={{ borderRadius:"8px", border:"0.5px solid #333", padding:"12px", background:"#242424", cursor:"pointer" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#CC0000"; e.currentTarget.style.background = "#2a0a0a" }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#333";    e.currentTarget.style.background = "#242424" }}
+                <div key={horario}
+                  onClick={() => !esPasado && setModalHorario(horario)}
+                  style={{ borderRadius:"8px", border:`0.5px solid ${TEMA.bordeSuave}`, padding:"12px", background: esPasado ? TEMA.fondo : TEMA.superficie, cursor: esPasado ? "not-allowed" : "pointer", opacity: esPasado ? 0.4 : 1 }}
+                  onMouseEnter={e => { if (!esPasado) { e.currentTarget.style.borderColor = TEMA.primario; e.currentTarget.style.background = TEMA.primarioBg } }}
+                  onMouseLeave={e => { if (!esPasado) { e.currentTarget.style.borderColor = TEMA.bordeSuave; e.currentTarget.style.background = TEMA.superficie } }}
                 >
-                  <p style={{ fontSize:"13px", fontWeight:500, color:"#555", margin:"0 0 4px" }}>{horario}</p>
-                  <p style={{ fontSize:"12px", color:"#444", margin:0 }}>Libre</p>
+                 <p style={{ fontSize:"15px", fontWeight:500, color: esPasado ? TEMA.textoDeshabilitado : TEMA.textoTerciario, margin:"0 0 4px" }}>{horario}</p>
+                 <p style={{ fontSize:"13px", color: esPasado ? TEMA.textoDeshabilitado : "#444", margin:0 }}>{esPasado ? "Pasado" : "Libre"}</p>
                 </div>
               )
             }
 
             const c = COLORES_ESTADO[turno.estado] || COLORES_ESTADO.cancelado
             return (
-              <div
-                key={horario}
+              <div key={horario}
                 onClick={async () => {
                   const { data } = await api.get(`/turnos/${turno.turno_id}`)
                   setTurnoSeleccionado(data)
@@ -373,25 +334,24 @@ function Turnos() {
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
                 onMouseLeave={e => e.currentTarget.style.opacity = "1"}
               >
-                <p style={{ fontSize:"13px", fontWeight:500, color:c.hora, margin:"0 0 4px" }}>{horario}</p>
-                <p style={{ fontSize:"12px", fontWeight:500, color:"#f0f0f0", margin:"0 0 2px" }}>
+                <p style={{ fontSize:"15px", fontWeight:500, color:c.hora, margin:"0 0 4px" }}>{horario}</p>
+                <p style={{ fontSize:"14px", fontWeight:500, color:TEMA.textoPrimario, margin:"0 0 2px" }}>
                   {turno.cliente?.nombre || `Cliente #${turno.cliente_id}`}
                 </p>
-                <p style={{ fontSize:"11px", color:"#888", margin:"0 0 7px" }}>
+               <p style={{ fontSize:"13px", color:TEMA.textoSecundario, margin:"0 0 7px" }}>
                   {turno.servicio?.nombre || `Servicio #${turno.servicio_id}`}
-                </p>
-                <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"20px", background:c.badge, color:c.texto, border:`0.5px solid ${c.badgeBorder}`, textTransform:"capitalize" }}>
-                  {turno.estado}
-                </span>
+              </p>
+              <span style={{ fontSize:"12px", padding:"3px 10px", borderRadius:"20px", background:c.badge, color:c.texto, border:`0.5px solid ${c.badgeBorder}`, textTransform:"capitalize" }}>
+                {turno.estado}
+              </span>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* Leyenda */}
       <div style={{ marginTop:"1.25rem", display:"flex", gap:"8px", flexWrap:"wrap", alignItems:"center" }}>
-        <span style={{ fontSize:"11px", color:"#555" }}>Estados:</span>
+        <span style={{ fontSize:"11px", color:TEMA.textoTerciario }}>Estados:</span>
         {Object.entries(COLORES_ESTADO).map(([estado, c]) => (
           <span key={estado} style={{ fontSize:"11px", padding:"3px 10px", borderRadius:"20px", background:c.bg, border:`0.5px solid ${c.border}`, color:c.texto, textTransform:"capitalize" }}>
             {estado}
@@ -399,25 +359,15 @@ function Turnos() {
         ))}
       </div>
 
-      {/* Modal nuevo turno */}
       {modalHorario && (
-        <ModalNuevoTurno
-          horario={modalHorario}
-          dia={diaSeleccionado}
-          onCerrar={() => setModalHorario(null)}
-          onCreado={cargarTurnos}
-        />
+        <ModalNuevoTurno horario={modalHorario} dia={diaSeleccionado} onCerrar={() => setModalHorario(null)} onCreado={cargarTurnos} />
       )}
 
-      {/* Modal acciones turno existente */}
       {turnoSeleccionado && (
         <ModalTurno
           turno={turnoSeleccionado}
           onCerrar={() => setTurnoSeleccionado(null)}
-          onActualizado={() => {
-            cargarTurnos()
-            setTurnoSeleccionado(null)
-          }}
+          onActualizado={() => { cargarTurnos(); setTurnoSeleccionado(null) }}
         />
       )}
     </div>

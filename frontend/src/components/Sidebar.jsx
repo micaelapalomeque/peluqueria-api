@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
+import { TEMA } from "../theme"
 
 const links = [
-  { nombre: "Turnos",           path: "/",         icono: "📅" },
+  { nombre: "Turnos",           path: "/",          icono: "📅" },
   { nombre: "Clientes",         path: "/clientes",  icono: "👤" },
   { nombre: "Servicios",        path: "/servicios", icono: "✂️" },
   { nombre: "Cuenta corriente", path: "/cuenta",    icono: "💰" },
@@ -22,7 +23,7 @@ function Sidebar({ paginaActual, onNavegar }) {
     return (
       <div style={{
         position:"fixed", bottom:0, left:0, right:0,
-        background:"#111", borderTop:"0.5px solid #2a2a2a",
+        background: TEMA.sidebar, borderTop:`0.5px solid ${TEMA.bordeSuave}`,
         display:"flex", zIndex:50,
       }}>
         {links.map(link => {
@@ -35,9 +36,9 @@ function Sidebar({ paginaActual, onNavegar }) {
                 flex:1, padding:"10px 4px 14px",
                 display:"flex", flexDirection:"column", alignItems:"center", gap:"4px",
                 cursor:"pointer",
-                color: activo ? "#CC0000" : "#555",
-                borderTop: activo ? "2px solid #CC0000" : "2px solid transparent",
-                background: activo ? "#1e0606" : "transparent",
+                color:       activo ? TEMA.primario : TEMA.textoTerciario,
+                borderTop:   activo ? `2px solid ${TEMA.primario}` : "2px solid transparent",
+                background:  activo ? TEMA.primarioBg : "transparent",
               }}
             >
               <span style={{ fontSize:"18px" }}>{link.icono}</span>
@@ -53,8 +54,8 @@ function Sidebar({ paginaActual, onNavegar }) {
 
   return (
     <div style={{
-      width:"168px", flexShrink:0, background:"#111",
-      borderRight:"0.5px solid #2a2a2a", padding:"1.5rem 0",
+      width:"168px", flexShrink:0, background: TEMA.sidebar,
+      borderRight:`0.5px solid ${TEMA.bordeSuave}`, padding:"1.5rem 0",
       display:"flex", flexDirection:"column", minHeight:"100vh",
     }}>
       <div style={{ padding:"0 1rem 1.5rem", display:"flex", flexDirection:"column", alignItems:"center" }}>
@@ -71,9 +72,9 @@ function Sidebar({ paginaActual, onNavegar }) {
               onClick={() => onNavegar(link.path)}
               style={{
                 padding:"9px 1rem", fontSize:"13px", cursor:"pointer",
-                borderLeft: activo ? "2px solid #CC0000" : "2px solid transparent",
-                background: activo ? "#1e0606" : "transparent",
-                color:      activo ? "#CC0000" : "#888",
+                borderLeft: activo ? `2px solid ${TEMA.primario}` : "2px solid transparent",
+                background: activo ? TEMA.primarioBg : "transparent",
+                color:      activo ? TEMA.primario : TEMA.textoSecundario,
                 fontWeight: activo ? 500 : 400,
               }}
             >
