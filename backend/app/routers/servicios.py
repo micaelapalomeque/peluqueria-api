@@ -24,8 +24,11 @@ def crear_servicio(servicio: schemas.ServicioCreate, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="La duración debe ser mayor a 0")
     if servicio.precio_total <= 0:
         raise HTTPException(status_code=400, detail="El precio total debe ser mayor a 0")
-
-    # Seña = 50% del precio total, calculada automáticamente
+    existente = db.query(models.Servicio).filter(
+        models.Servicio.nombre == servicio.nombre
+    ).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya existe un servicio con ese nombre")
     monto_senia = (servicio.precio_total * Decimal("0.5")).quantize(Decimal("0.01"))
 
     nuevo_servicio = models.Servicio(
@@ -66,7 +69,14 @@ def modificar_servicio(
         raise HTTPException(status_code=404, detail="Servicio no encontrado")
 
     if datos.nombre is not None:
-        servicio.nombre = datos.nombre
+    # ← NUEVO: verificar nombre duplicado al editar
+        existente = db.query(models.Servicio).filter(
+            models.Servicio.nombre == datos.nombre,
+            models.Servicio.id != servicio_id
+         ).first()
+    if existente:
+        raise HTTPException(status_code=400, detail="Ya existe un servicio con ese nombre")
+    servicio.nombre = datos.nombre
 
     if datos.duracion is not None:
         if datos.duracion <= 0:
