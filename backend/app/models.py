@@ -70,6 +70,7 @@ class Turno(Base):
     fecha_hora_fin    = Column(DateTime, nullable=False)
     monto_total       = Column(Numeric(10, 2), nullable=False)
     monto_senia       = Column(Numeric(10, 2), nullable=False, default=0)  # 0 = exento
+    monto_cobrado     = Column(Numeric(10, 2), nullable=True)
     estado            = Column(String(50), nullable=False, default="reservado")
     estado_senia      = Column(String(50), nullable=False, default="pendiente")
     link_pago_senia   = Column(String(255))

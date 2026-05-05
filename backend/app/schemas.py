@@ -99,6 +99,7 @@ class TurnoResponse(BaseModel):
     fecha_hora_fin:    datetime
     monto_total:       Decimal
     monto_senia:       Optional[Decimal] = None
+    monto_cobrado:     Optional[Decimal] = None 
     estado:            str
     estado_senia:      Optional[str] = None
     link_pago_senia:   Optional[str] = None

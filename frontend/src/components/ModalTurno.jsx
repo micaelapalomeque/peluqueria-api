@@ -88,26 +88,54 @@ function StepIndicator({ pasoActual, pasos }) {
 }
 
 function FlujoPago({ turno, onCompletado, onError }) {
-  const [paso,     setPaso]     = useState(1)
-  const [metodo,   setMetodo]   = useState("")
-  const [cargando, setCargando] = useState(false)
+  const [paso,           setPaso]           = useState(1)
+  const [metodo,         setMetodo]         = useState("")
+  const [cargando,       setCargando]       = useState(false)
+  const [tipoDescuento,  setTipoDescuento]  = useState("ninguno")
+  const [valorDescuento, setValorDescuento] = useState("")
+  const [modoDeuda,      setModoDeuda]      = useState(false)
 
-  const saldoRestante = turno.estado_senia === "abonada"
+  const montoOriginal = turno.estado_senia === "abonada"
     ? Number(turno.monto_total) - Number(turno.monto_senia)
     : Number(turno.monto_total)
+
+  const montoFinal = (() => {
+    if (tipoDescuento === "monto") {
+      const v = Number(valorDescuento)
+      return v > 0 && v <= montoOriginal ? v : montoOriginal
+    }
+    if (tipoDescuento === "porcentaje") {
+      const p = Number(valorDescuento)
+      if (p > 0 && p <= 100) return Math.round(montoOriginal * (1 - p / 100))
+    }
+    return montoOriginal
+  })()
+
+  const hayDescuento = montoFinal < montoOriginal
 
   async function cobrarYCompletar() {
     if (!metodo) return onError("Seleccioná un método de pago")
     setCargando(true)
     try {
+      if (hayDescuento) {
+        await api.patch(`/turnos/${turno.turno_id}/monto_cobrado`, {
+          monto_cobrado: montoFinal
+        })
+      }
+
       const { data: deudas } = await api.get(`/deudas/cliente/${turno.cliente_id}`)
-      const deuda = deudas.find(d => d.turno_id === turno.turno_id && d.estado !== "saldada")
+      const deuda = deudas.find(d =>
+        Number(d.turno_id) === Number(turno.turno_id) && d.estado !== "saldada"
+      )
+
       if (deuda) {
         await api.post(`/deudas/${deuda.deuda_id}/pagar`, {
-          monto:       saldoRestante,
+          monto:       montoFinal,
           metodo_pago: metodo,
         })
       }
+
+      await new Promise(resolve => setTimeout(resolve, 300))
       await api.patch(`/turnos/${turno.turno_id}/completar`)
       setPaso(3)
       onCompletado()
@@ -117,25 +145,27 @@ function FlujoPago({ turno, onCompletado, onError }) {
   }
 
   async function registrarDeuda() {
-    setCargando(true)
-    try {
-      await api.patch(`/turnos/${turno.turno_id}/completar`)
-      setPaso(3)
-      onCompletado()
-    } catch(e) {
-      onError(e.response?.data?.detail || "Error al completar")
-    } finally { setCargando(false) }
+    // El turno queda en asistido con deuda pendiente
+    // Se cobra desde Cuenta Corriente cuando el cliente vuelva
+    setPaso(3)
+    setModoDeuda(true)
+    onCompletado()
   }
 
   if (paso === 3) {
     return (
       <div style={{ textAlign:"center", padding:"1rem 0" }}>
-        <div style={{ width:"48px", height:"48px", borderRadius:"50%", background:"#1a4d1a", border:"0.5px solid #2a5a2a", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 12px", fontSize:"20px" }}>
-          ✓
+        <div style={{ width:"48px", height:"48px", borderRadius:"50%", background: modoDeuda ? "#2a2010" : "#1a4d1a", border:`0.5px solid ${modoDeuda ? "#5a4a10" : "#2a5a2a"}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 12px", fontSize:"20px" }}>
+          {modoDeuda ? "📋" : "✓"}
         </div>
-        <p style={{ fontSize:"15px", fontWeight:500, color:"#5aaa5a", margin:"0 0 4px" }}>Turno completado</p>
+        <p style={{ fontSize:"15px", fontWeight:500, color: modoDeuda ? "#cc9933" : "#5aaa5a", margin:"0 0 4px" }}>
+          {modoDeuda ? "Deuda registrada" : "Turno completado"}
+        </p>
         <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:0 }}>
-          {turno.cliente?.nombre} · {turno.servicio?.nombre}
+          {modoDeuda
+            ? `${turno.cliente?.nombre} quedó con deuda pendiente`
+            : `${turno.cliente?.nombre} · ${turno.servicio?.nombre}`
+          }
         </p>
       </div>
     )
@@ -144,6 +174,7 @@ function FlujoPago({ turno, onCompletado, onError }) {
   return (
     <>
       <StepIndicator pasoActual={paso} pasos={["Info", "Pago"]} />
+
       {paso === 1 && (
         <>
           <p style={{ fontSize:"13px", color: TEMA.textoSecundario, margin:"0 0 1.25rem" }}>
@@ -157,17 +188,54 @@ function FlujoPago({ turno, onCompletado, onError }) {
           </Btn>
         </>
       )}
+
       {paso === 2 && (
         <>
           <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 4px" }}>
             ¿Cómo pagó {turno.cliente?.nombre}?
           </p>
           <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 1.25rem" }}>
-            Saldo restante: <span style={{ color: TEMA.primarioHover }}>${saldoRestante}</span>
+            Saldo original: <span style={{ color: TEMA.primarioHover }}>${montoOriginal.toLocaleString("es-AR")}</span>
           </p>
+
+          {/* Descuento opcional */}
+          <div style={{ background:"#1a1a1a", border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", padding:"10px 12px", marginBottom:"12px" }}>
+            <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>
+              Descuento <span style={{ color: TEMA.textoTerciario, fontSize:"11px" }}>(opcional)</span>
+            </p>
+            <div style={{ display:"flex", gap:"6px", marginBottom:"8px" }}>
+              {["ninguno", "monto", "porcentaje"].map(tipo => (
+                <button key={tipo} onClick={() => { setTipoDescuento(tipo); setValorDescuento("") }}
+                  style={{
+                    flex:1, padding:"5px", borderRadius:"6px", fontSize:"11px", cursor:"pointer",
+                    border:     tipoDescuento === tipo ? `0.5px solid ${TEMA.primario}` : `0.5px solid ${TEMA.borde}`,
+                    background: tipoDescuento === tipo ? TEMA.primarioBg : TEMA.superficie,
+                    color:      tipoDescuento === tipo ? TEMA.primarioHover : TEMA.textoSecundario,
+                  }}>
+                  {tipo === "ninguno" ? "Sin descuento" : tipo === "monto" ? "$ Monto" : "% Porcentaje"}
+                </button>
+              ))}
+            </div>
+            {tipoDescuento !== "ninguno" && (
+              <input
+                value={valorDescuento}
+                onChange={e => setValorDescuento(e.target.value.replace(/\D/g, ""))}
+                placeholder={tipoDescuento === "monto" ? "Ej: 8000" : "Ej: 20"}
+                inputMode="numeric"
+                style={{ width:"100%", padding:"8px 10px", background:"#2a2a2a", border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color: TEMA.textoPrimario, fontSize:"13px", boxSizing:"border-box" }}
+              />
+            )}
+            {hayDescuento && (
+              <div style={{ marginTop:"8px", display:"flex", justifyContent:"space-between", fontSize:"12px" }}>
+                <span style={{ color: TEMA.textoTerciario }}>Monto con descuento:</span>
+                <span style={{ color:"#44cc44", fontWeight:500 }}>${montoFinal.toLocaleString("es-AR")}</span>
+              </div>
+            )}
+          </div>
+
           <SelectorMetodo valor={metodo} onChange={setMetodo} />
           <Btn variante="red" onClick={cobrarYCompletar} disabled={!metodo || cargando}>
-            Cobrar ${saldoRestante} y completar
+            Cobrar ${montoFinal.toLocaleString("es-AR")} y completar
           </Btn>
           <Btn variante="gray" onClick={() => setPaso(1)} disabled={cargando}>
             Volver

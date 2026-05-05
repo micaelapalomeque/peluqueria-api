@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 from typing import Optional
 from datetime import timedelta
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import Turno, Cliente, Servicio, Deuda, Pago
@@ -23,7 +24,6 @@ def _calcular_fin(fecha_inicio, duracion_minutos: int):
 
 
 def _hay_conflicto_horario(db: Session, fecha_inicio, fecha_fin, excluir_turno_id: int = None) -> bool:
-    """Verifica si ya existe un turno activo en ese horario."""
     query = (
         db.query(Turno)
         .filter(Turno.estado.notin_(["cancelado"]))
@@ -48,6 +48,18 @@ def _crear_deuda_si_corresponde(db: Session, turno: Turno):
         )
         db.add(deuda)
 
+
+# ─────────────────────────────────────────────
+# Schema para actualizar monto_cobrado
+# ─────────────────────────────────────────────
+
+class MontoCobradoUpdate(BaseModel):
+    monto_cobrado: Decimal
+
+
+# ─────────────────────────────────────────────
+# ENDPOINTS
+# ─────────────────────────────────────────────
 
 @router.get("/", response_model=list[TurnoResponse])
 def listar_turnos(
@@ -111,6 +123,20 @@ def crear_turno(turno_in: TurnoCreate, db: Session = Depends(get_db)):
     return turno
 
 
+@router.patch("/{turno_id}/monto_cobrado", response_model=TurnoResponse)
+def actualizar_monto_cobrado(turno_id: int, datos: MontoCobradoUpdate, db: Session = Depends(get_db)):
+    """Actualiza el monto cobrado con descuento — no modifica el precio original del servicio."""
+    turno = _get_or_404(db, Turno, Turno.turno_id, turno_id)
+    if datos.monto_cobrado <= 0:
+        raise HTTPException(status_code=400, detail="El monto debe ser mayor a 0")
+    if datos.monto_cobrado > turno.monto_total:
+        raise HTTPException(status_code=400, detail="El monto no puede ser mayor al total")
+    turno.monto_cobrado = datos.monto_cobrado
+    db.commit()
+    db.refresh(turno)
+    return turno
+
+
 @router.patch("/{turno_id}/seniar", response_model=TurnoResponse)
 def seniar_turno(turno_id: int, metodo_pago: str, db: Session = Depends(get_db)):
     turno = _get_or_404(db, Turno, Turno.turno_id, turno_id)
@@ -147,7 +173,6 @@ def seniar_turno(turno_id: int, metodo_pago: str, db: Session = Depends(get_db))
 
 @router.patch("/{turno_id}/confirmar_sin_senia", response_model=TurnoResponse)
 def confirmar_sin_senia(turno_id: int, db: Session = Depends(get_db)):
-    """Confirma el turno sin cobrar seña — pone monto_senia en 0 y estado_senia en exenta."""
     turno = _get_or_404(db, Turno, Turno.turno_id, turno_id)
 
     if turno.estado == "cancelado":
@@ -182,9 +207,22 @@ def completar_turno(turno_id: int, db: Session = Depends(get_db)):
     turno = _get_or_404(db, Turno, Turno.turno_id, turno_id)
     if turno.estado != "asistido":
         raise HTTPException(status_code=400, detail="El turno debe estar en estado asistido")
+    
     deuda = db.query(Deuda).filter(Deuda.turno_id == turno_id).first()
+    
     if deuda and deuda.estado != "saldada":
-        raise HTTPException(status_code=400, detail=f"El turno tiene una deuda pendiente de ${deuda.saldo_pendiente}")
+        # Si hay monto_cobrado (descuento), la deuda se salda por ese monto
+        if turno.monto_cobrado is not None:
+            deuda.saldo_pendiente = 0
+            deuda.monto_pagado    = turno.monto_cobrado
+            deuda.estado          = "saldada"
+            db.commit()
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El turno tiene una deuda pendiente de ${deuda.saldo_pendiente}"
+            )
+    
     turno.estado = "completado"
     db.commit()
     db.refresh(turno)
