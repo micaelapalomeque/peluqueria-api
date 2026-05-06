@@ -11,6 +11,7 @@ function Servicios() {
   const [modalServicio,    setModalServicio]    = useState(null)
   const [mostrarInactivos, setMostrarInactivos] = useState(false)
   const [paginaServicios,  setPaginaServicios]  = useState(1)
+  const [busqueda,         setBusqueda]         = useState("")
 
   function cargarServicios() {
     setCargando(true)
@@ -33,7 +34,10 @@ function Servicios() {
     } catch(e) { console.error(e) }
   }
 
-  const serviciosFiltrados    = servicios.filter(s => mostrarInactivos ? true : s.activo)
+  const serviciosFiltrados    = servicios
+    .filter(s => mostrarInactivos ? true : s.activo)
+    .filter(s => s.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+
   const totalPaginasServicios = Math.ceil(serviciosFiltrados.length / SERVICIOS_POR_PAGINA)
   const serviciosPagina       = serviciosFiltrados.slice(
     (paginaServicios - 1) * SERVICIOS_POR_PAGINA,
@@ -57,9 +61,20 @@ function Servicios() {
         </button>
       </div>
 
+      {/* Buscador */}
+      <div style={{ position:"relative", marginBottom:"12px" }}>
+        <span style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color: TEMA.textoTerciario, fontSize:"14px", pointerEvents:"none" }}>🔍</span>
+        <input
+          value={busqueda}
+          onChange={e => { setBusqueda(e.target.value); setPaginaServicios(1) }}
+          placeholder="Buscá por nombre de servicio..."
+          style={{ width:"100%", padding:"10px 12px 10px 36px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color: TEMA.textoPrimario, fontSize:"14px", boxSizing:"border-box" }}
+        />
+      </div>
+
       {/* Toggle inactivos */}
       <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"12px" }}>
-        <input type="checkbox" id="inactivos" checked={mostrarInactivos} onChange={e => setMostrarInactivos(e.target.checked)} />
+        <input type="checkbox" id="inactivos" checked={mostrarInactivos} onChange={e => { setMostrarInactivos(e.target.checked); setPaginaServicios(1) }} />
         <label htmlFor="inactivos" style={{ fontSize:"13px", color: TEMA.textoSecundario, cursor:"pointer" }}>
           Mostrar servicios inactivos
         </label>
