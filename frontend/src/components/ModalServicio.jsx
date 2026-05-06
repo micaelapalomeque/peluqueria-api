@@ -112,11 +112,11 @@ function ModalServicio({ servicio, onCerrar, onGuardado }) {
           {/* Preview seña */}
           <div style={{ background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", padding:"10px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <span style={{ fontSize:"13px", color: TEMA.textoSecundario }}>Seña (50% automático)</span>
-            <span style={{ fontSize:"14px", fontWeight:500, color: TEMA.estados.reservado.color }}>{seniaPreview}</span>
-          </div>
+            <span style={{ fontSize:"14px", fontWeight:500 }} className="text-yellow-400">{seniaPreview}</span>          </div>
+
         </div>
 
-        {error && <p style={{ fontSize:"12px", color: TEMA.primarioHover, marginTop:"10px" }}>{error}</p>}
+        {error && <p style={{ fontSize:"12px", color:"#f0b429 !important", marginTop:"10px" }}>{error}</p>}
 
         {/* Botones */}
         <div style={{ marginTop:"1.25rem", display:"flex", gap:"8px" }}>
