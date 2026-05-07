@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import api from "../api"
 import { TEMA } from "../theme"
 import ModalServicio from "../components/ModalServicio"
+import Swal from "sweetalert2"
 
 const SERVICIOS_POR_PAGINA = 10
 
@@ -24,15 +25,32 @@ function Servicios() {
   useEffect(() => { cargarServicios() }, [])
 
   async function toggleActivo(servicio) {
-    try {
-      if (servicio.activo) {
-        await api.patch(`/servicios/${servicio.id}/baja`)
-      } else {
-        await api.patch(`/servicios/${servicio.id}/alta`)
-      }
-      cargarServicios()
-    } catch(e) { console.error(e) }
-  }
+  const result = await Swal.fire({
+    title: servicio.activo
+      ? `¿Dar de baja a ${servicio.nombre}?`
+      : `¿Activar ${servicio.nombre}?`,
+    text: servicio.activo
+      ? "El servicio no aparecerá en el buscador de nuevos turnos."
+      : "El servicio volverá a estar disponible para nuevos turnos.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#CC0000",
+    cancelButtonColor: "#333",
+    confirmButtonText: servicio.activo ? "Sí, dar de baja" : "Sí, activar",
+    cancelButtonText: "Cancelar",
+    background: "#1e1e1e",
+    color: "#f0f0f0",
+  })
+  if (!result.isConfirmed) return
+  try {
+    if (servicio.activo) {
+      await api.patch(`/servicios/${servicio.id}/baja`)
+    } else {
+      await api.patch(`/servicios/${servicio.id}/alta`)
+    }
+    cargarServicios()
+  } catch(e) { console.error(e) }
+}
 
   const serviciosFiltrados    = servicios
     .filter(s => mostrarInactivos ? true : s.activo)

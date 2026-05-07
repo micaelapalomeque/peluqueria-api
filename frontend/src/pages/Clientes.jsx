@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import api from "../api"
 import { TEMA } from "../theme"
 import ModalCliente from "../components/ModalCliente"
+import Swal from "sweetalert2"
 
 const CLIENTES_POR_PAGINA  = 10
 const FRECUENTES_POR_PAGINA = 10
@@ -34,16 +35,35 @@ function Clientes() {
 
   useEffect(() => { cargarClientes() }, [])
 
-  async function toggleActivo(cliente) {
-    try {
-      if (cliente.activo) {
-        await api.patch(`/clientes/${cliente.id}/baja`)
-      } else {
-        await api.patch(`/clientes/${cliente.id}/alta`)
-      }
-      cargarClientes()
-    } catch(e) { console.error(e) }
+async function toggleActivo(cliente) {
+  const result = await Swal.fire({
+    title: cliente.activo
+      ? `¿Dar de baja a ${cliente.nombre}?`
+      : `¿Activar a ${cliente.nombre}?`,
+    text: cliente.activo
+      ? "El cliente no aparecerá en el buscador de nuevos turnos."
+      : "El cliente volverá a estar disponible para nuevos turnos.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#CC0000",
+    cancelButtonColor: "#333",
+    confirmButtonText: cliente.activo ? "Sí, dar de baja" : "Sí, activar",
+    cancelButtonText: "Cancelar",
+    background: "#1e1e1e",
+    color: "#f0f0f0",
+  })
+  if (!result.isConfirmed) return
+  try {
+    if (cliente.activo) {
+      await api.patch(`/clientes/${cliente.id}/baja`)
+    } else {
+      await api.patch(`/clientes/${cliente.id}/alta`)
+    }
+    cargarClientes()
+  } catch(e) {
+    console.error(e)
   }
+}
 
   const clientesFiltrados      = clientes
     .filter(c => clientesBaja ? true : c.activo)

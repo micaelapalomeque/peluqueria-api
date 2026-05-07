@@ -3,6 +3,7 @@ import api from "../api"
 import { TEMA } from "../theme"
 import ModalCobrar from "../components/ModalCobrar"
 import ModalCuentaCliente from "../components/ModalCuentaCliente"
+import Swal from "sweetalert2"
 
 function iniciales(nombre) {
   return nombre?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?"
@@ -306,15 +307,32 @@ function CuentaCorriente() {
           </div>
           <div style={{ flexShrink:0, width:"80px", textAlign:"right" }}>
             <button
-              onClick={() => {
-                if (!confirm("¿Revertir este pago? Se reabrirá la deuda automáticamente.")) return
-                api.patch(`/pagos/${pago.pago_id}/cancelar`)
-                  .then(() => cargarTodo())
-                  .catch(e => alert(e.response?.data?.detail || "Error al revertir"))
-              }}
-              style={{ padding:"4px 10px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoTerciario, fontSize:"11px", cursor:"pointer" }}
-            >
-              Revertir
+                onClick={async () => {
+  const result = await Swal.fire({
+    title: "¿Borrar este pago?",
+    text: "Se reabrirá la deuda automáticamente.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#CC0000",
+    cancelButtonColor: "#333",
+    confirmButtonText: "Sí, borrar",
+    cancelButtonText: "Cancelar",
+    background: "#1e1e1e",
+    color: "#f0f0f0",
+  })
+  if (!result.isConfirmed) return
+  api.patch(`/pagos/${pago.pago_id}/cancelar`)
+    .then(() => cargarTodo())
+    .catch(e => Swal.fire({ title:"Error", text: e.response?.data?.detail || "Error al revertir", icon:"error", background:"#1e1e1e", color:"#f0f0f0" }))
+}}
+                 style={{ padding:"4px 8px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.primarioBorder}`, color: TEMA.primarioHover, fontSize:"14px", cursor:"pointer", lineHeight:1 }}
+                    >
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                 <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                 <path d="M10 11v6M14 11v6"/>
+                 <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                </svg>
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import api from "../api"
 import { TEMA } from "../theme"
+import Swal from "sweetalert2"
 
 const COLORES_ESTADO = TEMA.estados
 
@@ -294,16 +295,29 @@ function ModalTurno({ turno: turnoInicial, onCerrar, onActualizado }) {
   }
 
   async function accion(endpoint, confirmMsg) {
-    if (confirmMsg && !confirm(confirmMsg)) return
-    setCargando(true)
-    setError(null)
-    try {
-      await api.patch(`/turnos/${turno.turno_id}/${endpoint}`)
-      await recargarTurno()
-    } catch(e) {
-      setError(e.response?.data?.detail || "Error")
-    } finally { setCargando(false) }
+  if (confirmMsg) {
+    const result = await Swal.fire({
+      title: confirmMsg,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#CC0000",
+      cancelButtonColor: "#333",
+      confirmButtonText: "Sí, confirmar",
+      cancelButtonText: "Cancelar",
+      background: "#1e1e1e",
+      color: "#f0f0f0",
+    })
+    if (!result.isConfirmed) return
   }
+  setCargando(true)
+  setError(null)
+  try {
+    await api.patch(`/turnos/${turno.turno_id}/${endpoint}`)
+    await recargarTurno()
+  } catch(e) {
+    setError(e.response?.data?.detail || "Error")
+  } finally { setCargando(false) }
+}
 
   async function registrarSenia(metodo) {
     if (!metodo) return setError("Seleccioná un método de pago")
