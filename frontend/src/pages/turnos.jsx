@@ -341,6 +341,9 @@ function Turnos() {
                <p style={{ fontSize:"13px", color:TEMA.textoSecundario, margin:"0 0 7px" }}>
                   {turno.servicio?.nombre || `Servicio #${turno.servicio_id}`}
               </p>
+              <p style={{ fontSize:"10px", color: TEMA.textoTerciario, margin:"0 0 5px" }}>
+                #{turno.turno_id}
+              </p>
               <span style={{ fontSize:"12px", padding:"3px 10px", borderRadius:"20px", background:c.badge, color:c.texto, border:`0.5px solid ${c.badgeBorder}`, textTransform:"capitalize" }}>
                 {turno.estado}
               </span>

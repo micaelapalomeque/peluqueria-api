@@ -111,15 +111,27 @@ def confirmar_pago(pago_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{pago_id}/cancelar", response_model=PagoResponse)
 def cancelar_pago(pago_id: int, db: Session = Depends(get_db)):
+    """Cancela un pago y reabre la deuda asociada automáticamente."""
     pago = _get_or_404(db, Pago, Pago.pago_id, pago_id)
 
     if pago.estado_pago == "cancelado":
         raise HTTPException(status_code=400, detail="El pago ya está cancelado")
 
-    if pago.estado_pago == "pagado":
-        raise HTTPException(status_code=400, detail="No se puede cancelar un pago ya confirmado")
-
     pago.estado_pago = "cancelado"
+
+    # Reabrir la deuda si existe
+    if pago.turno_id:
+        deuda = db.query(Deuda).filter(Deuda.turno_id == pago.turno_id).first()
+        if deuda:
+            deuda.monto_pagado    = max(Decimal("0"), deuda.monto_pagado - pago.monto)
+            deuda.saldo_pendiente = deuda.monto_original - deuda.monto_pagado
+            deuda.estado          = "pendiente" if deuda.monto_pagado == 0 else "parcial"
+
+            # Si el turno estaba completado, volver a asistido
+            turno = db.query(Turno).filter(Turno.turno_id == pago.turno_id).first()
+            if turno and turno.estado == "completado":
+                turno.estado = "asistido"
+
     db.commit()
     db.refresh(pago)
     return pago

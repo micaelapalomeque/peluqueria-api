@@ -266,47 +266,60 @@ function CuentaCorriente() {
             </>
           )}
 
-          {/* ── HISTORIAL ── */}
-          {pestaña === "historial" && (
-            <>
-              <div style={{ background: TEMA.superficieAlta, border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"8px", overflow:"hidden" }}>
-                <div style={{ display:"flex", padding:"10px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, fontSize:"12px", color: TEMA.textoTerciario }}>
-                  <span style={{ flex:2 }}>Cliente</span>
-                  <span style={{ flex:1, textAlign:"center" }}>Fecha</span>
-                  <span style={{ flex:1, textAlign:"center" }}>Método</span>
-                  <span style={{ flex:1, textAlign:"right" }}>Monto</span>
-                </div>
-                {pagosPagina.length === 0 ? (
-                  <p style={{ padding:"1.5rem", textAlign:"center", color: TEMA.textoTerciario, fontSize:"14px" }}>
-                    Sin historial de pagos
-                  </p>
-                ) : pagosPagina.map(pago => (
-                  <div key={pago.pago_id}
-                    style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, gap:"12px" }}
-                    onMouseEnter={e => e.currentTarget.style.background = TEMA.superficie}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <div style={{ flex:2 }}>
-                      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>
-                        {nombreCliente(pago.cliente_id)}
-                      </p>
-                      <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0, textTransform:"capitalize" }}>
-                        {pago.tipo_pago}
-                      </p>
-                    </div>
-                    <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario }}>
-                      {new Date(pago.fecha_pago).toLocaleDateString("es-AR")}
-                    </div>
-                    <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario, textTransform:"capitalize" }}>
-                      {pago.metodo_pago}
-                    </div>
-                    <div style={{ flex:1, textAlign:"right", fontSize:"14px", fontWeight:500, color:"#44cc44" }}>
-                      {formatPeso(pago.monto)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
+         {/* ── HISTORIAL ── */}
+{pestaña === "historial" && (
+  <>
+    <div style={{ background: TEMA.superficieAlta, border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"8px", overflow:"hidden" }}>
+      <div style={{ display:"flex", padding:"10px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, fontSize:"12px", color: TEMA.textoTerciario }}>
+        <span style={{ flex:2 }}>Cliente</span>
+        <span style={{ flex:1, textAlign:"center" }}>Fecha</span>
+        <span style={{ flex:1, textAlign:"center" }}>Método</span>
+        <span style={{ flex:1, textAlign:"right" }}>Monto</span>
+        <span style={{ flexShrink:0, width:"80px" }}></span>
+      </div>
+      {pagosPagina.length === 0 ? (
+        <p style={{ padding:"1.5rem", textAlign:"center", color: TEMA.textoTerciario, fontSize:"14px" }}>
+          Sin historial de pagos
+        </p>
+      ) : pagosPagina.map(pago => (
+        <div key={pago.pago_id}
+          style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, gap:"12px" }}
+          onMouseEnter={e => e.currentTarget.style.background = TEMA.superficie}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          <div style={{ flex:2 }}>
+            <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>
+              {nombreCliente(pago.cliente_id)}
+            </p>
+            <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0, textTransform:"capitalize" }}>
+              {pago.tipo_pago}
+            </p>
+          </div>
+          <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario }}>
+            {new Date(pago.fecha_pago).toLocaleDateString("es-AR")}
+          </div>
+          <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario, textTransform:"capitalize" }}>
+            {pago.metodo_pago}
+          </div>
+          <div style={{ flex:1, textAlign:"right", fontSize:"14px", fontWeight:500, color:"#44cc44" }}>
+            {formatPeso(pago.monto)}
+          </div>
+          <div style={{ flexShrink:0, width:"80px", textAlign:"right" }}>
+            <button
+              onClick={() => {
+                if (!confirm("¿Revertir este pago? Se reabrirá la deuda automáticamente.")) return
+                api.patch(`/pagos/${pago.pago_id}/cancelar`)
+                  .then(() => cargarTodo())
+                  .catch(e => alert(e.response?.data?.detail || "Error al revertir"))
+              }}
+              style={{ padding:"4px 10px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoTerciario, fontSize:"11px", cursor:"pointer" }}
+            >
+              Revertir
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
               {/* Paginación pagos */}
               {totalPaginas > 1 && (
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"12px", marginTop:"1rem" }}>
