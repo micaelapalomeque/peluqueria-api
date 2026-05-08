@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 from typing import Optional
 from app.database import get_db
-from app.models import Deuda, Cliente, Turno, Pago
+from app.models import Deuda, Cliente, Turno, Pago, Servicio
 from app.schemas import DeudaCreate, DeudaPagoCreate, DeudaResponse, ResumenDeudaCliente
+
 
 router = APIRouter(prefix="/deudas", tags=["Deudas"])
 
@@ -33,6 +34,40 @@ def listar_deudas(
         query = query.filter(Deuda.estado == estado)
     return query.order_by(Deuda.fecha_generacion.desc()).all()
 
+@router.get("/detalle/")
+def listar_deudas_detalle(
+    estado: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = (
+        db.query(Deuda)
+        .join(Turno, Deuda.turno_id == Turno.turno_id)
+        .join(Cliente, Deuda.cliente_id == Cliente.id)
+        .join(Servicio, Turno.servicio_id == Servicio.id)
+    )
+    if estado:
+        if estado not in ("pendiente", "parcial", "saldada"):
+            raise HTTPException(status_code=400, detail="Estado inválido")
+        query = query.filter(Deuda.estado == estado)
+
+    deudas = query.order_by(Deuda.fecha_generacion.desc()).all()
+
+    return [
+        {
+            "deuda_id":        d.deuda_id,
+            "cliente_id":      d.cliente_id,
+            "turno_id":        d.turno_id,
+            "monto_original":  float(d.monto_original),
+            "monto_pagado":    float(d.monto_pagado),
+            "saldo_pendiente": float(d.saldo_pendiente),
+            "estado":          d.estado,
+            "cliente_nombre":  d.turno.cliente.nombre,
+            "cliente_celular": d.turno.cliente.celular,
+            "servicio_nombre": d.turno.servicio.nombre,
+            "fecha_turno":     d.turno.fecha_hora_inicio.isoformat(),
+        }
+        for d in deudas
+    ]
 
 @router.get("/{deuda_id}", response_model=DeudaResponse)
 def obtener_deuda(deuda_id: int, db: Session = Depends(get_db)):
