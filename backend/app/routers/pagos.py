@@ -110,6 +110,128 @@ def confirmar_pago(pago_id: int, db: Session = Depends(get_db)):
     db.refresh(pago)
     return pago
 
+@router.get("/reporte/metodos-pago")
+def reporte_metodos_pago(
+    mes:  int = None,
+    anio: int = None,
+    db: Session = Depends(get_db)
+):
+    """Devuelve totales por método de pago para un mes/año dado."""
+    hoy  = datetime.now()
+    mes  = mes  or hoy.month
+    anio = anio or hoy.year
+
+    inicio = datetime(anio, mes, 1)
+    if mes == 12:
+        fin = datetime(anio + 1, 1, 1)
+    else:
+        fin = datetime(anio, mes + 1, 1)
+
+    pagos = (
+        db.query(Pago.metodo_pago, func.sum(Pago.monto).label("total"))
+        .filter(Pago.estado_pago == "pagado")
+        .filter(Pago.fecha_pago >= inicio)
+        .filter(Pago.fecha_pago <  fin)
+        .group_by(Pago.metodo_pago)
+        .all()
+    )
+
+    resultado = { p.metodo_pago: float(p.total) for p in pagos }
+
+    return {
+        "mes":          mes,
+        "anio":         anio,
+        "efectivo":     resultado.get("efectivo",     0),
+        "transferencia":resultado.get("transferencia",0),
+    }
+
+@router.get("/reporte/mes-actual")
+def reporte_mes_actual(db: Session = Depends(get_db)):
+    """Devuelve cobrado vs adeudado del mes actual."""
+    hoy    = datetime.now()
+    inicio = datetime(hoy.year, hoy.month, 1)
+
+    cobrado = db.query(func.sum(Pago.monto)).filter(
+        Pago.estado_pago == "pagado",
+        Pago.fecha_pago  >= inicio,
+        Pago.fecha_pago  <= hoy,
+    ).scalar() or 0
+
+    adeudado = db.query(func.sum(Deuda.saldo_pendiente)).filter(
+        Deuda.estado != "saldada"
+    ).scalar() or 0
+
+    total = float(cobrado) + float(adeudado)
+
+    return {
+        "cobrado":          float(cobrado),
+        "adeudado":         float(adeudado),
+        "total":            total,
+        "pct_cobrado":      round(float(cobrado)  / total * 100, 1) if total > 0 else 0,
+        "pct_adeudado":     round(float(adeudado) / total * 100, 1) if total > 0 else 0,
+        "mes":              hoy.strftime("%B %Y"),
+    }
+
+@router.get("/reporte/meses")
+def ingresos_por_mes(
+    meses: int = 1,
+    db: Session = Depends(get_db)
+):
+    """Devuelve ingresos cobrados agrupados por mes.
+    meses: 1 = mes actual, 2 = bimestral, 3 = trimestral, 12 = anual"""
+    
+    hoy = datetime.now()
+    
+    if meses == 12:
+        # Año completo — enero a diciembre del año actual
+        inicio = datetime(hoy.year, 1, 1)
+        meses_a_mostrar = 12
+    else:
+        # Últimos N meses desde el mes actual
+        inicio = datetime(hoy.year, hoy.month, 1)
+        for _ in range(meses - 1):
+            if inicio.month == 1:
+                inicio = datetime(inicio.year - 1, 12, 1)
+            else:
+                inicio = datetime(inicio.year, inicio.month - 1, 1)
+        meses_a_mostrar = meses
+
+    nombres_meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+    
+    pagos = (
+        db.query(
+            func.extract("year",  Pago.fecha_pago).label("anio"),
+            func.extract("month", Pago.fecha_pago).label("mes"),
+            func.sum(Pago.monto).label("total")
+        )
+        .filter(Pago.estado_pago == "pagado")
+        .filter(Pago.fecha_pago >= inicio)
+        .group_by(
+            func.extract("year",  Pago.fecha_pago),
+            func.extract("month", Pago.fecha_pago)
+        )
+        .all()
+    )
+
+    resultado = []
+    cursor = datetime(inicio.year, inicio.month, 1)
+
+    for _ in range(meses_a_mostrar):
+        es_futuro = cursor.year > hoy.year or (cursor.year == hoy.year and cursor.month > hoy.month)
+        pago_mes  = next((p for p in pagos if int(p.anio) == cursor.year and int(p.mes) == cursor.month), None)
+        resultado.append({
+            "mes":      nombres_meses[cursor.month - 1],
+            "anio":     cursor.year,
+            "total":    float(pago_mes.total) if pago_mes and not es_futuro else 0,
+            "es_futuro": es_futuro,
+        })
+        # Avanzar al siguiente mes
+        if cursor.month == 12:
+            cursor = datetime(cursor.year + 1, 1, 1)
+        else:
+            cursor = datetime(cursor.year, cursor.month + 1, 1)
+
+    return resultado
 
 @router.get("/reporte/semana")
 def ingresos_por_semana(
