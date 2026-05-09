@@ -3,8 +3,9 @@ import api from "../api"
 import { TEMA } from "../theme"
 import ModalCliente from "../components/ModalCliente"
 import Swal from "sweetalert2"
+import BtnExportar from "../components/BtnExportar"
 
-const CLIENTES_POR_PAGINA  = 10
+const CLIENTES_POR_PAGINA   = 10
 const FRECUENTES_POR_PAGINA = 10
 
 function iniciales(nombre) {
@@ -12,15 +13,15 @@ function iniciales(nombre) {
 }
 
 function Clientes() {
-  const [clientes,          setClientes]          = useState([])
-  const [cargando,          setCargando]          = useState(true)
-  const [busqueda,          setBusqueda]          = useState("")
-  const [pestaña,           setPestaña]           = useState("lista")
-  const [modalCliente,      setModalCliente]      = useState(null)
-  const [clientesBaja,      setClientesBaja]      = useState(false)
-  const [frecuentes,        setFrecuentes]        = useState([])
-  const [paginaClientes,    setPaginaClientes]    = useState(1)
-  const [paginaFrecuentes,  setPaginaFrecuentes]  = useState(1)
+  const [clientes,         setClientes]         = useState([])
+  const [cargando,         setCargando]         = useState(true)
+  const [busqueda,         setBusqueda]         = useState("")
+  const [pestaña,          setPestaña]          = useState("lista")
+  const [modalCliente,     setModalCliente]     = useState(null)
+  const [clientesBaja,     setClientesBaja]     = useState(false)
+  const [frecuentes,       setFrecuentes]       = useState([])
+  const [paginaClientes,   setPaginaClientes]   = useState(1)
+  const [paginaFrecuentes, setPaginaFrecuentes] = useState(1)
 
   function cargarClientes() {
     setCargando(true)
@@ -35,35 +36,29 @@ function Clientes() {
 
   useEffect(() => { cargarClientes() }, [])
 
-async function toggleActivo(cliente) {
-  const result = await Swal.fire({
-    title: cliente.activo
-      ? `¿Dar de baja a ${cliente.nombre}?`
-      : `¿Activar a ${cliente.nombre}?`,
-    text: cliente.activo
-      ? "El cliente no aparecerá en el buscador de nuevos turnos."
-      : "El cliente volverá a estar disponible para nuevos turnos.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#CC0000",
-    cancelButtonColor: "#333",
-    confirmButtonText: cliente.activo ? "Sí, dar de baja" : "Sí, activar",
-    cancelButtonText: "Cancelar",
-    background: "#1e1e1e",
-    color: "#f0f0f0",
-  })
-  if (!result.isConfirmed) return
-  try {
-    if (cliente.activo) {
-      await api.patch(`/clientes/${cliente.id}/baja`)
-    } else {
-      await api.patch(`/clientes/${cliente.id}/alta`)
-    }
-    cargarClientes()
-  } catch(e) {
-    console.error(e)
+  async function toggleActivo(cliente) {
+    const result = await Swal.fire({
+      title: cliente.activo ? `¿Dar de baja a ${cliente.nombre}?` : `¿Activar a ${cliente.nombre}?`,
+      text:  cliente.activo ? "El cliente no aparecerá en el buscador de nuevos turnos." : "El cliente volverá a estar disponible para nuevos turnos.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#CC0000",
+      cancelButtonColor: "#333",
+      confirmButtonText: cliente.activo ? "Sí, dar de baja" : "Sí, activar",
+      cancelButtonText: "Cancelar",
+      background: "#1e1e1e",
+      color: "#f0f0f0",
+    })
+    if (!result.isConfirmed) return
+    try {
+      if (cliente.activo) {
+        await api.patch(`/clientes/${cliente.id}/baja`)
+      } else {
+        await api.patch(`/clientes/${cliente.id}/alta`)
+      }
+      cargarClientes()
+    } catch(e) { console.error(e) }
   }
-}
 
   const clientesFiltrados      = clientes
     .filter(c => clientesBaja ? true : c.activo)
@@ -77,7 +72,6 @@ async function toggleActivo(cliente) {
     (paginaClientes - 1) * CLIENTES_POR_PAGINA,
     paginaClientes * CLIENTES_POR_PAGINA
   )
-
   const totalPaginasFrecuentes = Math.ceil(frecuentes.length / FRECUENTES_POR_PAGINA)
   const frecuentesPagina       = frecuentes.slice(
     (paginaFrecuentes - 1) * FRECUENTES_POR_PAGINA,
@@ -95,10 +89,24 @@ async function toggleActivo(cliente) {
             {clientes.filter(c => c.activo).length} activos
           </p>
         </div>
-        <button onClick={() => setModalCliente(false)}
-          style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.primario, border:"none", color:"white", fontSize:"13px", fontWeight:500, cursor:"pointer" }}>
-          + Nuevo cliente
-        </button>
+        <div style={{ display:"flex", gap:"8px" }}>
+          <BtnExportar
+            nombreArchivo="clientes_peluqueria"
+            titulo="Listado de Clientes"
+            columnas={["Nombre", "Celular", "Estado", "Fecha alta", "Observacion"]}
+            filas={clientesFiltrados.map(c => [
+              c.nombre,
+              c.celular,
+              c.activo ? "Activo" : "Inactivo",
+              new Date(c.fecha_alta).toLocaleDateString("es-AR"),
+              c.observacion || "",
+            ])}
+          />
+          <button onClick={() => setModalCliente(false)}
+            style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.primario, border:"none", color:"white", fontSize:"13px", fontWeight:500, cursor:"pointer" }}>
+            + Nuevo cliente
+          </button>
+        </div>
       </div>
 
       {/* Pestañas */}

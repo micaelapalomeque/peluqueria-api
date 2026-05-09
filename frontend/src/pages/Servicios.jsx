@@ -3,6 +3,7 @@ import api from "../api"
 import { TEMA } from "../theme"
 import ModalServicio from "../components/ModalServicio"
 import Swal from "sweetalert2"
+import BtnExportar from "../components/BtnExportar"
 
 const SERVICIOS_POR_PAGINA = 10
 
@@ -66,19 +67,33 @@ function Servicios() {
     <div style={{ flex:1, padding:"1.5rem", background: TEMA.fondo, overflowY:"auto" }}>
 
       {/* Encabezado */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
-        <div>
-          <p style={{ fontSize:"16px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>Servicios</p>
-          <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"2px 0 0" }}>
-            {servicios.filter(s => s.activo).length} activos
-          </p>
-        </div>
-        <button onClick={() => setModalServicio(false)}
-          style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.primario, border:"none", color:"white", fontSize:"13px", fontWeight:500, cursor:"pointer" }}>
-          + Nuevo servicio
-        </button>
-      </div>
-
+<div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
+  <div>
+    <p style={{ fontSize:"16px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>Servicios</p>
+    <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"2px 0 0" }}>
+      {servicios.filter(s => s.activo).length} activos
+    </p>
+  </div>
+  <div style={{ display:"flex", gap:"8px" }}>
+    <BtnExportar
+      nombreArchivo="servicios_peluqueria"
+      titulo="Listado de Servicios"
+      columnas={["Nombre", "Duracion (min)", "Precio", "Senia", "Estado"]}
+      filas={serviciosFiltrados.map(s => [
+        s.nombre,
+        s.duracion,
+        `$${Number(s.precio_total).toLocaleString("es-AR")}`,
+        `$${Number(s.monto_senia).toLocaleString("es-AR")}`,
+        s.activo ? "Activo" : "Inactivo",
+      ])}
+    />
+    <button onClick={() => setModalServicio(false)}
+      style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.primario, border:"none", color:"white", fontSize:"13px", fontWeight:500, cursor:"pointer" }}>
+      + Nuevo servicio
+    </button>
+  </div>
+</div>
+ 
       {/* Buscador */}
       <div style={{ position:"relative", marginBottom:"12px" }}>
         <span style={{ position:"absolute", left:"12px", top:"50%", transform:"translateY(-50%)", color: TEMA.textoTerciario, fontSize:"14px", pointerEvents:"none" }}>🔍</span>

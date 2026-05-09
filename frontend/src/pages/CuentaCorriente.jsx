@@ -4,6 +4,7 @@ import { TEMA } from "../theme"
 import ModalCobrar from "../components/ModalCobrar"
 import ModalCuentaCliente from "../components/ModalCuentaCliente"
 import Swal from "sweetalert2"
+import BtnExportar from "../components/BtnExportar"
 
 function iniciales(nombre) {
   return nombre?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?"
@@ -317,76 +318,94 @@ function enviarResumenCliente(cliente) {
           )}
 
           {/* ── HISTORIAL ── */}
-          {pestaña === "historial" && (
-            <>
-              <div style={{ background: TEMA.superficieAlta, border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"8px", overflow:"hidden" }}>
-                <div style={{ display:"flex", padding:"10px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, fontSize:"12px", color: TEMA.textoTerciario }}>
-                  <span style={{ flex:2 }}>Cliente</span>
-                  <span style={{ flex:1, textAlign:"center" }}>Fecha</span>
-                  <span style={{ flex:1, textAlign:"center" }}>Método</span>
-                  <span style={{ flex:1, textAlign:"right" }}>Monto</span>
-                  <span style={{ flexShrink:0, width:"80px" }}></span>
-                </div>
-                {pagosPagina.length === 0 ? (
-                  <p style={{ padding:"1.5rem", textAlign:"center", color: TEMA.textoTerciario, fontSize:"14px" }}>
-                    Sin historial de pagos
-                  </p>
-                ) : pagosPagina.map(pago => (
-                  <div key={pago.pago_id}
-                    style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, gap:"12px" }}
-                    onMouseEnter={e => e.currentTarget.style.background = TEMA.superficie}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <div style={{ flex:2 }}>
-                      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>
-                        {nombreCliente(pago.cliente_id)}
-                      </p>
-                      <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0, textTransform:"capitalize" }}>
-                        {pago.tipo_pago}
-                      </p>
-                    </div>
-                    <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario }}>
-                      {new Date(pago.fecha_pago).toLocaleDateString("es-AR")}
-                    </div>
-                    <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario, textTransform:"capitalize" }}>
-                      {pago.metodo_pago}
-                    </div>
-                    <div style={{ flex:1, textAlign:"right", fontSize:"14px", fontWeight:500, color:"#44cc44" }}>
-                      {formatPeso(pago.monto)}
-                    </div>
-                    <div style={{ flexShrink:0, width:"80px", textAlign:"right" }}>
-                      <button
-                        onClick={async () => {
-                          const result = await Swal.fire({
-                            title: "¿Borrar este pago?",
-                            text: "Se reabrirá la deuda automáticamente.",
-                            icon: "warning",
-                            showCancelButton: true,
-                            confirmButtonColor: "#CC0000",
-                            cancelButtonColor: "#333",
-                            confirmButtonText: "Sí, borrar",
-                            cancelButtonText: "Cancelar",
-                            background: "#1e1e1e",
-                            color: "#f0f0f0",
-                          })
-                          if (!result.isConfirmed) return
-                          api.patch(`/pagos/${pago.pago_id}/cancelar`)
-                            .then(() => cargarTodo())
-                            .catch(e => Swal.fire({ title:"Error", text: e.response?.data?.detail || "Error al revertir", icon:"error", background:"#1e1e1e", color:"#f0f0f0" }))
-                        }}
-                        style={{ padding:"4px 8px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.primarioBorder}`, color: TEMA.primarioHover, fontSize:"14px", cursor:"pointer", lineHeight:1 }}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6"/>
-                          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                          <path d="M10 11v6M14 11v6"/>
-                          <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+{pestaña === "historial" && (
+  <>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>
+        Historial de pagos
+      </p>
+      <BtnExportar
+        nombreArchivo="historial_pagos"
+        titulo="Historial de Pagos"
+        columnas={["Cliente", "Fecha", "Metodo", "Tipo", "Monto"]}
+        filas={pagos.map(p => [
+          nombreCliente(p.cliente_id),
+          new Date(p.fecha_pago).toLocaleDateString("es-AR"),
+          p.metodo_pago,
+          p.tipo_pago,
+          `$${Number(p.monto).toLocaleString("es-AR")}`,
+        ])}
+      />
+    </div>
+
+    <div style={{ background: TEMA.superficieAlta, border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"8px", overflow:"hidden" }}>
+      <div style={{ display:"flex", padding:"10px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, fontSize:"12px", color: TEMA.textoTerciario }}>
+        <span style={{ flex:2 }}>Cliente</span>
+        <span style={{ flex:1, textAlign:"center" }}>Fecha</span>
+        <span style={{ flex:1, textAlign:"center" }}>Método</span>
+        <span style={{ flex:1, textAlign:"right" }}>Monto</span>
+        <span style={{ flexShrink:0, width:"80px" }}></span>
+      </div>
+      {pagosPagina.length === 0 ? (
+        <p style={{ padding:"1.5rem", textAlign:"center", color: TEMA.textoTerciario, fontSize:"14px" }}>
+          Sin historial de pagos
+        </p>
+      ) : pagosPagina.map(pago => (
+        <div key={pago.pago_id}
+          style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, gap:"12px" }}
+          onMouseEnter={e => e.currentTarget.style.background = TEMA.superficie}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          <div style={{ flex:2 }}>
+            <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>
+              {nombreCliente(pago.cliente_id)}
+            </p>
+            <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0, textTransform:"capitalize" }}>
+              {pago.tipo_pago}
+            </p>
+          </div>
+          <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario }}>
+            {new Date(pago.fecha_pago).toLocaleDateString("es-AR")}
+          </div>
+          <div style={{ flex:1, textAlign:"center", fontSize:"12px", color: TEMA.textoSecundario, textTransform:"capitalize" }}>
+            {pago.metodo_pago}
+          </div>
+          <div style={{ flex:1, textAlign:"right", fontSize:"14px", fontWeight:500, color:"#44cc44" }}>
+            {formatPeso(pago.monto)}
+          </div>
+          <div style={{ flexShrink:0, width:"80px", textAlign:"right" }}>
+            <button
+              onClick={async () => {
+                const result = await Swal.fire({
+                  title: "¿Borrar este pago?",
+                  text: "Se reabrirá la deuda automáticamente.",
+                  icon: "warning",
+                  showCancelButton: true,
+                  confirmButtonColor: "#CC0000",
+                  cancelButtonColor: "#333",
+                  confirmButtonText: "Sí, borrar",
+                  cancelButtonText: "Cancelar",
+                  background: "#1e1e1e",
+                  color: "#f0f0f0",
+                })
+                if (!result.isConfirmed) return
+                api.patch(`/pagos/${pago.pago_id}/cancelar`)
+                  .then(() => cargarTodo())
+                  .catch(e => Swal.fire({ title:"Error", text: e.response?.data?.detail || "Error al revertir", icon:"error", background:"#1e1e1e", color:"#f0f0f0" }))
+              }}
+              style={{ padding:"4px 8px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.primarioBorder}`, color: TEMA.primarioHover, fontSize:"14px", cursor:"pointer", lineHeight:1 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
 
               {/* Paginación pagos */}
               {totalPaginas > 1 && (
