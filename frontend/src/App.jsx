@@ -4,6 +4,7 @@ import Turnos from "./pages/Turnos"
 import Clientes from "./pages/Clientes"
 import Servicios from "./pages/Servicios"
 import CuentaCorriente from "./pages/CuentaCorriente"
+import Reportes from "./pages/Reportes"
 
 function App() {
   const [pagina, setPagina] = useState(
@@ -53,6 +54,7 @@ function App() {
          pagina === "clientes"           ? <Clientes />        :
          pagina === "servicios"          ? <Servicios />       :
          pagina === "cuenta"             ? <CuentaCorriente /> :
+         pagina === "reportes"           ? <Reportes />        :
          (
           <div style={{ padding:"2rem", color:"#888", fontSize:"14px" }}>
             Pantalla en construcción...

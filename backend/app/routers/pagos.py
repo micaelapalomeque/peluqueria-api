@@ -5,6 +5,8 @@ from typing import Optional
 from app.database import get_db
 from app.models import Pago, Turno, Cliente, Deuda
 from app.schemas import PagoCreate, PagoResponse
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 router = APIRouter(prefix="/pagos", tags=["Pagos"])
 
@@ -109,6 +111,47 @@ def confirmar_pago(pago_id: int, db: Session = Depends(get_db)):
     return pago
 
 
+@router.get("/reporte/semana")
+def ingresos_por_semana(
+    fecha_inicio: str,
+    db: Session = Depends(get_db)
+):
+    """Devuelve ingresos cobrados agrupados por día para una semana dada.
+    fecha_inicio debe ser un lunes en formato YYYY-MM-DD"""
+    try:
+        inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Usar YYYY-MM-DD")
+
+    fin = inicio + timedelta(days=6)
+
+    pagos = (
+        db.query(
+            func.date(Pago.fecha_pago).label("dia"),
+            func.sum(Pago.monto).label("total")
+        )
+        .filter(Pago.estado_pago == "pagado")
+        .filter(Pago.fecha_pago >= inicio)
+        .filter(Pago.fecha_pago <= fin.replace(hour=23, minute=59, second=59) if hasattr(fin, 'replace') else fin)
+        .group_by(func.date(Pago.fecha_pago))
+        .all()
+    )
+
+    # Generar los 6 días lunes a sábado
+    nombres = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+    resultado = []
+    for i in range(6):
+        dia = inicio + timedelta(days=i)
+        dia_str = dia.strftime("%Y-%m-%d")
+        pago_dia = next((p for p in pagos if str(p.dia) == dia_str), None)
+        resultado.append({
+            "dia":        nombres[i],
+            "fecha":      dia_str,
+            "total":      float(pago_dia.total) if pago_dia else 0,
+        })
+
+    return resultado
+
 @router.patch("/{pago_id}/cancelar", response_model=PagoResponse)
 def cancelar_pago(pago_id: int, db: Session = Depends(get_db)):
     """Cancela un pago y reabre la deuda asociada automáticamente."""
@@ -131,6 +174,7 @@ def cancelar_pago(pago_id: int, db: Session = Depends(get_db)):
             turno = db.query(Turno).filter(Turno.turno_id == pago.turno_id).first()
             if turno and turno.estado == "completado":
                 turno.estado = "asistido"
+                
 
     db.commit()
     db.refresh(pago)
