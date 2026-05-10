@@ -110,40 +110,7 @@ def confirmar_pago(pago_id: int, db: Session = Depends(get_db)):
     db.refresh(pago)
     return pago
 
-@router.get("/reporte/metodos-pago")
-def reporte_metodos_pago(
-    mes:  int = None,
-    anio: int = None,
-    db: Session = Depends(get_db)
-):
-    """Devuelve totales por método de pago para un mes/año dado."""
-    hoy  = datetime.now()
-    mes  = mes  or hoy.month
-    anio = anio or hoy.year
 
-    inicio = datetime(anio, mes, 1)
-    if mes == 12:
-        fin = datetime(anio + 1, 1, 1)
-    else:
-        fin = datetime(anio, mes + 1, 1)
-
-    pagos = (
-        db.query(Pago.metodo_pago, func.sum(Pago.monto).label("total"))
-        .filter(Pago.estado_pago == "pagado")
-        .filter(Pago.fecha_pago >= inicio)
-        .filter(Pago.fecha_pago <  fin)
-        .group_by(Pago.metodo_pago)
-        .all()
-    )
-
-    resultado = { p.metodo_pago: float(p.total) for p in pagos }
-
-    return {
-        "mes":          mes,
-        "anio":         anio,
-        "efectivo":     resultado.get("efectivo",     0),
-        "transferencia":resultado.get("transferencia",0),
-    }
 
 @router.get("/reporte/mes-actual")
 def reporte_mes_actual(db: Session = Depends(get_db)):

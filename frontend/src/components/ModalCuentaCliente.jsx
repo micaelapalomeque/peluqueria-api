@@ -26,14 +26,16 @@ function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
   const [pagos,    setPagos]    = useState([])
   const [deudas,   setDeudas]   = useState([])
   const [cargando, setCargando] = useState(true)
+  const [saldoFavor, setSaldoFavor] = useState(0)
 
   useEffect(() => {
     setCargando(true)
     Promise.all([
-      api.get(`/turnos/?cliente_id=${cliente.id}`),
-      api.get(`/pagos/`),
-      api.get(`/deudas/cliente/${cliente.id}?solo_pendientes=false`),
-    ]).then(([turnosRes, pagosRes, deudasRes]) => {
+        api.get(`/turnos/?cliente_id=${cliente.id}`),
+        api.get(`/pagos/`),
+        api.get(`/deudas/cliente/${cliente.id}?solo_pendientes=false`),
+        api.get(`/clientes/${cliente.id}`),
+    ]).then(([turnosRes, pagosRes, deudasRes, clienteRes]) => {
       const turnosCliente = turnosRes.data
         .filter(t => !["cancelado", "reservado"].includes(t.estado))
         .sort((a, b) => new Date(b.fecha_hora_inicio) - new Date(a.fecha_hora_inicio))
@@ -46,6 +48,8 @@ function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
       setTurnos(turnosCliente)
       setPagos(pagosCliente)
       setDeudas(deudasRes.data)
+      setSaldoFavor(Number(clienteRes.data.saldo_favor) || 0)
+
     }).catch(console.error)
       .finally(() => setCargando(false))
   }, [cliente.id])
@@ -160,7 +164,15 @@ function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
           </div>
         )}
 
-        <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>Últimos movimientos</p>
+        {/* Tarjeta saldo a favor */}
+            {saldoFavor > 0 && (
+            <div style={{ background:"#0a1a2a", border:"0.5px solid #1a4a8a", borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem" }}>
+                <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:"0 0 2px" }}>Saldo a favor</p>
+                <p style={{ fontSize:"16px", fontWeight:500, color:"#66aaff", margin:0 }}>{formatPeso(saldoFavor)}</p>
+            </div>
+            )}
+
+            <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>Últimos movimientos</p>
 
         {cargando ? (
           <p style={{ color: TEMA.textoSecundario, fontSize:"13px", textAlign:"center", padding:"1rem" }}>Cargando...</p>
