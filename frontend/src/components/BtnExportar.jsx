@@ -4,11 +4,8 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { TEMA } from "../theme"
 
-function BtnExportar({ nombreArchivo, titulo, columnas, filas }) {
+function BtnExportar({ nombreArchivo, titulo, columnas, filas, onExportarPDF }) {
   const [menuAbierto, setMenuAbierto] = useState(false)
-
-  // columnas = ["Nombre", "Celular", "Estado"]
-  // filas    = [["Juan", "1123456789", "Activo"], ...]
 
   function exportarExcel() {
     const datos = filas.map(fila =>
@@ -23,9 +20,16 @@ function BtnExportar({ nombreArchivo, titulo, columnas, filas }) {
   }
 
   function exportarPDF() {
+    //funcion diferente para cuenta corriente
+    if (onExportarPDF) {
+      onExportarPDF()
+      setMenuAbierto(false)
+      return
+    }
+
     const doc = new jsPDF()
     doc.setFontSize(16)
-    doc.text(`Peluqueria Isa - ${titulo}`, 14, 16)
+    doc.text(`peluqueria_isa_ - ${titulo}`, 14, 16)
     doc.setFontSize(10)
     doc.setTextColor(150)
     doc.text(`Generado el ${new Date().toLocaleDateString("es-AR")}`, 14, 23)
@@ -45,8 +49,9 @@ function BtnExportar({ nombreArchivo, titulo, columnas, filas }) {
     <div style={{ position:"relative" }}>
       <button
         onClick={() => setMenuAbierto(p => !p)}
-        style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoSecundario, fontSize:"13px", fontWeight:500, cursor:"pointer" }}
+        style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoSecundario, fontSize:"13px", fontWeight:500,display: "flex", cursor:"pointer", whiteSpace: "nowrap" }}
       >
+        <img src="/icono_exportar.png" alt="exportar" style={{ width:"20px", height:"20px", objectFit:"contain" }} />
          Exportar
       </button>
 

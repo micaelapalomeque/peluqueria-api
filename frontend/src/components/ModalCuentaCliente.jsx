@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
 import api from "../api"
 import { TEMA } from "../theme"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 function formatPeso(valor) {
   return `$${Number(valor).toLocaleString("es-AR")}`
@@ -19,7 +21,7 @@ function formatHora(fecha) {
   return f.split("T")[1]?.slice(0, 5)
 }
 
-function ModalCuentaCliente({ cliente, onCerrar }) {
+function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
   const [turnos,   setTurnos]   = useState([])
   const [pagos,    setPagos]    = useState([])
   const [deudas,   setDeudas]   = useState([])
@@ -73,6 +75,59 @@ function ModalCuentaCliente({ cliente, onCerrar }) {
     }
     return { label: turno.estado, bg: TEMA.superficie, color: TEMA.textoSecundario, border: TEMA.borde }
   }
+  async function exportarPDF() {
+        const doc = new jsPDF()
+        doc.setFontSize(18)
+        doc.setTextColor(204, 0, 0)
+        doc.text("Peluqueria Isa", 14, 18)
+        doc.setFontSize(12)
+        doc.setTextColor(80, 80, 80)
+        doc.text(`Estado de cuenta - ${cliente.nombre}`, 14, 26)
+        doc.setFontSize(9)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`Generado el ${new Date().toLocaleDateString("es-AR")}`, 14, 32)
+        doc.setFontSize(11)
+        doc.setTextColor(0, 0, 0)
+        doc.text(`Deuda pendiente total: $${totalDeuda.toLocaleString("es-AR")}`, 14, 42)
+
+        const filas = turnos.map(turno => {
+            const pagosTurno   = pagos.filter(p => p.turno_id === turno.turno_id)
+            const deuda        = deudas.find(d => d.turno_id === turno.turno_id && d.estado !== "saldada")
+            const fecha        = new Date(turno.fecha_hora_inicio.replace(" ", "T"))
+            const fechaStr     = fecha.toLocaleDateString("es-AR", { day:"numeric", month:"short", year:"numeric" })
+            const horaStr      = turno.fecha_hora_inicio.replace(" ", "T").split("T")[1]?.slice(0, 5)
+            const servicio     = turno.servicio?.nombre || `Servicio #${turno.servicio_id}`
+            const estado       = deuda ? "Sin pagar" : turno.estado === "completado" ? "Pagado" : turno.estado
+            const monto        = deuda
+            ? `-$${Number(deuda.saldo_pendiente).toLocaleString("es-AR")}`
+            : pagosTurno.length > 0
+                ? `$${pagosTurno.reduce((acc, p) => acc + Number(p.monto), 0).toLocaleString("es-AR")}`
+                : "-"
+            const pagosDetalle = pagosTurno.map(p =>
+            `${p.tipo_pago === "senia" ? "Sena" : "Saldo"} $${Number(p.monto).toLocaleString("es-AR")} · ${new Date(p.fecha_pago).toLocaleDateString("es-AR")} · ${p.metodo_pago}`
+            ).join(" / ")
+
+            return [fechaStr + " " + horaStr + "hs", servicio, estado, monto, pagosDetalle]
+        })
+
+        autoTable(doc, {
+            startY: 48,
+            head: [["Fecha y hora", "Servicio", "Estado", "Monto", "Detalle pagos"]],
+            body: filas,
+            styles:             { fontSize:8, cellPadding:3 },
+            headStyles:         { fillColor:[204, 0, 0], textColor:255, fontStyle:"bold" },
+            alternateRowStyles: { fillColor:[245, 245, 245] },
+            columnStyles: {
+            0: { cellWidth:30 },
+            1: { cellWidth:35 },
+            2: { cellWidth:22 },
+            3: { cellWidth:22 },
+            4: { cellWidth:60 },
+            }
+        })
+
+        doc.save(`cuenta_${cliente.nombre.replace(/ /g, "_")}.pdf`)
+        }
 
   return (
     <div
@@ -156,14 +211,21 @@ function ModalCuentaCliente({ cliente, onCerrar }) {
               )
             })}
           </div>
-        )}
+      )}
 
-        <button
-          onClick={onCerrar}
-          style={{ width:"100%", marginTop:"1rem", padding:"10px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoSecundario, fontSize:"13px", cursor:"pointer" }}
-        >
-          Cerrar
-        </button>
+        <div style={{ display:"flex", gap:"8px", marginTop:"1rem" }}>
+          <button
+            onClick={exportarPDF}
+            style={{ flex:1, padding:"10px", borderRadius:"6px", background: TEMA.primario, border:"none", color:"white", fontSize:"13px", fontWeight:500, cursor:"pointer" }}>
+             Descargar PDF
+            </button>
+          <button
+            onClick={onCerrar}
+            style={{ flex:1, padding:"10px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoSecundario, fontSize:"13px", cursor:"pointer" }}>
+            Cerrar
+          </button>
+        </div>
+
       </div>
     </div>
   )

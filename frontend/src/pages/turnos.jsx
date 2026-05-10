@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import api from "../api"
 import ModalTurno from "../components/ModalTurno"
 import { TEMA } from "../theme"
+import ModalExportarTurnos from "../components/ModalExportarTurnos"
 
 const HORARIOS = [
   "08:00","08:30","09:00","09:30","10:00","10:30",
@@ -12,6 +13,7 @@ const HORARIOS = [
 ]
 
 const COLORES_ESTADO = TEMA.estados
+
 
 function generarDias(offset = 0) {
   const nombres = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"]
@@ -203,6 +205,7 @@ function Turnos() {
   const [cargando,          setCargando]          = useState(false)
   const [modalHorario,      setModalHorario]      = useState(null)
   const [turnoSeleccionado, setTurnoSeleccionado] = useState(null)
+  const [modalExportar, setModalExportar] = useState(false)
 
   function cargarTurnos() {
     setCargando(true)
@@ -360,7 +363,16 @@ function Turnos() {
             {estado}
           </span>
         ))}
-      </div>
+     </div>
+
+    <div style={{ marginTop:"12px" }}>
+      <button
+        onClick={() => setModalExportar(true)}
+        style={{ padding:"8px 16px", borderRadius:"6px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoSecundario, fontSize:"13px", cursor:"pointer", display:"flex", alignItems:"center", gap:"8px", whiteSpace:"nowrap" }}>
+        <img src="/icono_exportar.png" alt="exportar" style={{ width:"20px", height:"20px", objectFit:"contain" }} />
+        Exportar turnos
+      </button>
+    </div>
 
       {modalHorario && (
         <ModalNuevoTurno horario={modalHorario} dia={diaSeleccionado} onCerrar={() => setModalHorario(null)} onCreado={cargarTurnos} />
@@ -372,6 +384,10 @@ function Turnos() {
           onCerrar={() => setTurnoSeleccionado(null)}
           onActualizado={() => { cargarTurnos(); setTurnoSeleccionado(null) }}
         />
+      )}
+
+      {modalExportar && (
+        <ModalExportarTurnos onCerrar={() => setModalExportar(false)} />
       )}
     </div>
   )
