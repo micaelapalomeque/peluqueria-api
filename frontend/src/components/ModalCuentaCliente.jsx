@@ -151,27 +151,26 @@ function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
           <span onClick={onCerrar} style={{ color: TEMA.textoTerciario, cursor:"pointer", fontSize:"18px" }}>✕</span>
         </div>
 
-        {/* Tarjeta deuda */}
-        {totalDeuda > 0 && (
-          <div style={{ background:"#1f1a0a", border:`0.5px solid ${TEMA.estados.reservado.border}`, borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem" }}>
-            <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:"0 0 2px" }}>Deuda pendiente</p>
-            <p style={{ fontSize:"16px", fontWeight:500, color:"#f0b429", margin:0 }}>{formatPeso(totalDeuda)}</p>          </div>
-        )}
-
-        {totalDeuda === 0 && (
-          <div style={{ background:"#0a1f0a", border:"0.5px solid #1a5a1a", borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem" }}>
-            <p style={{ fontSize:"13px", fontWeight:500, color:"#44cc44", margin:0 }}>Al día — sin deudas pendientes</p>
-          </div>
-        )}
-
-        {/* Tarjeta saldo a favor */}
-            {saldoFavor > 0 && (
-            <div style={{ background:"#0a1a2a", border:"0.5px solid #1a4a8a", borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem" }}>
-                <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:"0 0 2px" }}>Saldo a favor</p>
-                <p style={{ fontSize:"16px", fontWeight:500, color:"#66aaff", margin:0 }}>{formatPeso(saldoFavor)}</p>
+        {(() => {
+          const saldoNeto = totalDeuda - saldoFavor
+          return (
+            <div style={{
+              background: saldoNeto > 0 ? "#1f1a0a" : saldoNeto < 0 ? "#0a1a2a" : "#0a1f0a",
+              border: `0.5px solid ${saldoNeto > 0 ? TEMA.estados.reservado.border : saldoNeto < 0 ? "#1a4a8a" : "#1a5a1a"}`,
+              borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem"
+            }}>
+              <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:"0 0 2px" }}>Saldo actual</p>
+              <p style={{ fontSize:"16px", fontWeight:500, margin:"0 0 2px",
+                color: saldoNeto > 0 ? "#f0b429" : saldoNeto < 0 ? "#66aaff" : "#44cc44"
+              }}>
+                {saldoNeto > 0 ? formatPeso(saldoNeto) : saldoNeto < 0 ? `-${formatPeso(Math.abs(saldoNeto))}` : "$0"}
+              </p>
+              <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0 }}>
+                {saldoNeto > 0 ? "Debe este monto" : saldoNeto < 0 ? "Tiene saldo a favor" : "Al día"}
+              </p>
             </div>
-            )}
-
+          )
+        })()}
             <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>Últimos movimientos</p>
 
         {cargando ? (

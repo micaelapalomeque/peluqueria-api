@@ -105,8 +105,9 @@ function CuentaCorriente() {
   const deudasPorCliente = clientes.map(cliente => {
     const deudasCliente = deudas.filter(d => d.cliente_id === cliente.id)
     const total = deudasCliente.reduce((acc, d) => acc + Number(d.saldo_pendiente), 0)
-    return { ...cliente, deudasCliente, total }
-  }).sort((a, b) => b.total - a.total)
+    const saldoNeto = total - Number(cliente.saldo_favor || 0)
+    return { ...cliente, deudasCliente, total, saldoNeto }
+  }).sort((a, b) => b.saldoNeto - a.saldoNeto)
 
   // ── Filtros ──
   const deudasFiltradas = deudas.filter(d =>
@@ -308,7 +309,7 @@ function CuentaCorriente() {
               <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
                 {clientesPagina.map(cliente => (
                   <div key={cliente.id}
-                    style={{ background: TEMA.superficieAlta, border:`0.5px solid ${cliente.total > 0 ? TEMA.estados.reservado.border : TEMA.bordeSuave}`, borderRadius:"8px", padding:"14px 16px", display:"flex", alignItems:"center", gap:"12px" }}>
+                    style={{ background: TEMA.superficieAlta, border:`0.5px solid ${cliente.saldoNeto > 0 ? TEMA.estados.reservado.border : cliente.saldoNeto < 0 ? "#1a4a8a" : TEMA.bordeSuave}`, borderRadius:"8px", padding:"14px 16px", display:"flex", alignItems:"center", gap:"12px" }}>
                     <div style={{ width:"36px", height:"36px", borderRadius:"50%", background: TEMA.primarioBg, border:`0.5px solid ${TEMA.primarioBorder}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:500, color: TEMA.primarioHover, flexShrink:0 }}>
                       {iniciales(cliente.nombre)}
                     </div>
@@ -321,17 +322,17 @@ function CuentaCorriente() {
                       </p>
                     </div>
                     <div style={{ textAlign:"right" }}>
-                      <p style={{ fontSize:"15px", fontWeight:500, color: cliente.total > 0 ? "#f0b429" : "#44cc44", margin:"0 0 4px" }}>
-                        {formatPeso(cliente.total)}
+                      <p style={{ fontSize:"15px", fontWeight:500, color: cliente.saldoNeto > 0 ? "#f0b429" : cliente.saldoNeto < 0 ? "#66aaff" : "#44cc44", margin:"0 0 4px" }}>
+                        {cliente.saldoNeto > 0 ? formatPeso(cliente.saldoNeto) : cliente.saldoNeto < 0 ? `-${formatPeso(Math.abs(cliente.saldoNeto))}` : "$0"}
                       </p>
-                      <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"20px", background: cliente.total > 0 ? TEMA.estados.reservado.bg : "#0a1f0a", color: cliente.total > 0 ? "#f0b429" : "#44cc44", border:`0.5px solid ${cliente.total > 0 ? TEMA.estados.reservado.border : "#1a5a1a"}` }}>
-                        {cliente.total > 0 ? "Con deuda" : "Al día"}
+                      <span style={{
+                        fontSize:"10px", padding:"2px 8px", borderRadius:"20px",
+                        background: cliente.saldoNeto > 0 ? TEMA.estados.reservado.bg : cliente.saldoNeto < 0 ? "#0a1a2a" : "#0a1f0a",
+                        color:      cliente.saldoNeto > 0 ? "#f0b429" : cliente.saldoNeto < 0 ? "#66aaff" : "#44cc44",
+                        border:     `0.5px solid ${cliente.saldoNeto > 0 ? TEMA.estados.reservado.border : cliente.saldoNeto < 0 ? "#1a4a8a" : "#1a5a1a"}`,
+                      }}>
+                        {cliente.saldoNeto > 0 ? "Con deuda" : cliente.saldoNeto < 0 ? "Saldo a favor" : "Al día"}
                       </span>
-                      {cliente.saldo_favor > 0 && (
-                        <p style={{ fontSize:"11px", color:"#66aaff", margin:"4px 0 0" }}>
-                          Saldo a favor: {formatPeso(cliente.saldo_favor)}
-                        </p>
-                      )}
                       <div style={{ marginTop:"6px", display:"flex", gap:"6px", justifyContent:"flex-end" }}>
                         {cliente.deudasCliente.length > 0 && (
                           <button onClick={() => enviarResumenCliente(cliente)}

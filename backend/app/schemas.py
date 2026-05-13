@@ -8,9 +8,9 @@ from decimal import Decimal
 # ── ENUMS como Literal ────────────────────────────────────────────────────────
 
 MetodoPago  = Literal['efectivo', 'transferencia', 'mp', 'debito', 'credito']
-TipoPago    = Literal['senia', 'parcial', 'total', 'saldo_favor']
 EstadoPago  = Literal['pendiente', 'pagado', 'cancelado']
 EstadoDeuda = Literal['pendiente', 'parcial', 'saldada']
+TipoPago = Literal['senia', 'parcial', 'total', 'saldo_favor', 'recargo', 'propina']
 
 
 # ── CLIENTE ───────────────────────────────────────────────────────────────────
