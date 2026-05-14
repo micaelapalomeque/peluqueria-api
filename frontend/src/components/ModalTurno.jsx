@@ -74,6 +74,7 @@ function FlujoPago({ turno, onCompletado, onError }) {
   const [valorDescuento, setValorDescuento] = useState("")
   const [modoDeuda,      setModoDeuda]      = useState(false)
   const [propina,        setPropina]        = useState("")
+  const [montoEntregado, setMontoEntregado] = useState("")
 
   const montoOriginal = turno.estado_senia === "abonada"
     ? Number(turno.monto_total) - Number(turno.monto_senia)
@@ -93,6 +94,18 @@ function FlujoPago({ turno, onCompletado, onError }) {
 
   const hayDescuento = montoFinal < montoOriginal
 
+  const entregado = montoEntregado !== "" ? Number(montoEntregado) : null
+
+  const tipoPago = (() => {
+    if (entregado === null) return null
+    if (entregado < montoFinal)  return "parcial"
+    if (entregado === montoFinal) return "exacto"
+    if (entregado > montoFinal)  return "excedente"
+  })()
+
+  const saldoRestantePago = entregado !== null ? Math.max(0, montoFinal - entregado) : 0
+  const saldoAFavor       = entregado !== null && entregado > montoFinal ? entregado - montoFinal : 0
+
   async function cobrarYCompletar() {
     if (!metodo) return onError("Seleccioná un método de pago")
     setCargando(true)
@@ -106,9 +119,11 @@ function FlujoPago({ turno, onCompletado, onError }) {
         Number(d.turno_id) === Number(turno.turno_id) && d.estado !== "saldada"
       )
 
+      const montoPagar = entregado !== null ? Math.min(entregado, montoFinal) : montoFinal
+
       if (deuda) {
         await api.post(`/deudas/${deuda.deuda_id}/pagar`, {
-          monto:       montoFinal,
+          monto:       montoPagar,
           metodo_pago: metodo,
         })
       }
@@ -116,6 +131,23 @@ function FlujoPago({ turno, onCompletado, onError }) {
       await new Promise(resolve => setTimeout(resolve, 300))
       await api.patch(`/turnos/${turno.turno_id}/completar`)
 
+      // Saldo a favor si entregó de más
+      if (saldoAFavor > 0) {
+        await api.post("/pagos/", {
+          turno_id:    turno.turno_id,
+          cliente_id:  turno.cliente_id,
+          monto:       saldoAFavor,
+          metodo_pago: metodo,
+          tipo_pago:   "saldo_favor",
+          estado_pago: "pagado",
+          descripcion: `Saldo a favor turno #${turno.turno_id}`,
+        })
+        await api.patch(`/clientes/${turno.cliente_id}/saldo_favor`, {
+          monto: saldoAFavor
+        })
+      }
+
+      // Propina
       if (propina && Number(propina) > 0) {
         await api.post("/pagos/", {
           turno_id:    turno.turno_id,
@@ -211,6 +243,47 @@ function FlujoPago({ turno, onCompletado, onError }) {
             )}
           </div>
 
+          {/* Monto entregado */}
+          <div style={{ background:"#1a1a1a", border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", padding:"10px 12px", marginBottom:"12px" }}>
+            <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>
+              Monto que entrega el cliente <span style={{ color: TEMA.textoTerciario, fontSize:"11px" }}>(opcional)</span>
+            </p>
+            <input
+              value={montoEntregado}
+              onChange={e => setMontoEntregado(e.target.value.replace(/\D/g, ""))}
+              placeholder={`$${montoFinal.toLocaleString("es-AR")} (exacto)`}
+              inputMode="numeric"
+              style={{ width:"100%", padding:"8px 10px", background:"#2a2a2a", border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color: TEMA.textoPrimario, fontSize:"13px", boxSizing:"border-box" }}
+            />
+            {tipoPago && (
+              <div style={{
+                marginTop:"8px", padding:"8px 10px", borderRadius:"6px",
+                background: tipoPago === "parcial" ? "#1f1a0a" : tipoPago === "excedente" ? "#0a1a2a" : "#0a1f0a",
+                border: `0.5px solid ${tipoPago === "parcial" ? "#5a4a10" : tipoPago === "excedente" ? "#1a4a8a" : "#1a5a1a"}`,
+              }}>
+                {tipoPago === "parcial" && (
+                  <>
+                    <p style={{ fontSize:"12px", color:"#f0b429", margin:"0 0 2px", fontWeight:500 }}>Pago parcial</p>
+                    <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0 }}>
+                      Queda pendiente: <span style={{ color:"#f0b429" }}>${saldoRestantePago.toLocaleString("es-AR")}</span>
+                    </p>
+                  </>
+                )}
+                {tipoPago === "exacto" && (
+                  <p style={{ fontSize:"12px", color:"#44cc44", margin:0, fontWeight:500 }}>Pago exacto ✓</p>
+                )}
+                {tipoPago === "excedente" && (
+                  <>
+                    <p style={{ fontSize:"12px", color:"#66aaff", margin:"0 0 2px", fontWeight:500 }}>Pago con excedente</p>
+                    <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0 }}>
+                      Saldo a favor: <span style={{ color:"#66aaff" }}>${saldoAFavor.toLocaleString("es-AR")}</span>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Propina */}
           <div style={{ background:"#1a1a1a", border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", padding:"10px 12px", marginBottom:"12px" }}>
             <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>
@@ -231,12 +304,24 @@ function FlujoPago({ turno, onCompletado, onError }) {
           <SelectorMetodo valor={metodo} onChange={setMetodo} />
 
           {/* Resumen */}
-          {(hayDescuento || (propina && Number(propina) > 0)) && (
+          {(hayDescuento || tipoPago || (propina && Number(propina) > 0)) && (
             <div style={{ background:"#1a1a1a", border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", padding:"10px 12px", marginBottom:"12px" }}>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"4px" }}>
                 <span style={{ color: TEMA.textoTerciario }}>Corte:</span>
-                <span style={{ color: TEMA.textoPrimario }}>${montoFinal.toLocaleString("es-AR")}</span>
+                <span style={{ color: TEMA.textoPrimario }}>${(entregado !== null ? Math.min(entregado, montoFinal) : montoFinal).toLocaleString("es-AR")}</span>
               </div>
+              {saldoAFavor > 0 && (
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"4px" }}>
+                  <span style={{ color: TEMA.textoTerciario }}>Saldo a favor:</span>
+                  <span style={{ color:"#66aaff" }}>${saldoAFavor.toLocaleString("es-AR")}</span>
+                </div>
+              )}
+              {saldoRestantePago > 0 && (
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"4px" }}>
+                  <span style={{ color: TEMA.textoTerciario }}>Queda pendiente:</span>
+                  <span style={{ color:"#f0b429" }}>${saldoRestantePago.toLocaleString("es-AR")}</span>
+                </div>
+              )}
               {propina && Number(propina) > 0 && (
                 <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"4px" }}>
                   <span style={{ color: TEMA.textoTerciario }}>Propina:</span>
@@ -245,13 +330,13 @@ function FlujoPago({ turno, onCompletado, onError }) {
               )}
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:"13px", fontWeight:500, borderTop:`0.5px solid ${TEMA.bordeSuave}`, paddingTop:"6px", marginTop:"4px" }}>
                 <span style={{ color: TEMA.textoSecundario }}>Total a cobrar:</span>
-                <span style={{ color:"#44cc44" }}>${(montoFinal + (Number(propina) || 0)).toLocaleString("es-AR")}</span>
+                <span style={{ color:"#44cc44" }}>${((entregado !== null ? entregado : montoFinal) + (Number(propina) || 0)).toLocaleString("es-AR")}</span>
               </div>
             </div>
           )}
 
           <Btn variante="red" onClick={cobrarYCompletar} disabled={!metodo || cargando}>
-            {cargando ? "Procesando..." : `Cobrar $${(montoFinal + (Number(propina) || 0)).toLocaleString("es-AR")} y completar`}
+            {cargando ? "Procesando..." : `Cobrar $${((entregado !== null ? entregado : montoFinal) + (Number(propina) || 0)).toLocaleString("es-AR")} y completar`}
           </Btn>
           <Btn variante="gray" onClick={() => setPaso(1)} disabled={cargando}>Volver</Btn>
         </>

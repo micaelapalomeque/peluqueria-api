@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas
 from sqlalchemy import func
+from decimal import Decimal
+from fastapi import Body
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
@@ -140,6 +142,19 @@ def dar_baja_cliente(cliente_id: int, db: Session = Depends(get_db)):
     db.refresh(cliente)
 
     return cliente
+
+@router.patch("/{cliente_id}/saldo_favor")
+def agregar_saldo_favor(
+    cliente_id: int,
+    monto: Decimal = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    cliente = db.query(models.Cliente).filter(models.Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    cliente.saldo_favor += monto
+    db.commit()
+    return { "saldo_favor": float(cliente.saldo_favor) }
 
 #SE PUEDE VOLVER A DAR DE ALTA AL CLIENTE 
 @router.patch("/{cliente_id}/alta", response_model=schemas.ClienteResponse)
