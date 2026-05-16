@@ -10,138 +10,92 @@ function formatPeso(valor) {
 
 function formatFecha(fecha) {
   if (!fecha) return ""
-  return new Date(fecha).toLocaleDateString("es-AR", {
-    weekday: "long", day: "numeric", month: "long"
+  return new Date(fecha.replace(" ", "T")).toLocaleDateString("es-AR", {
+    day:"numeric", month:"short", year:"numeric"
   })
 }
 
-function formatHora(fecha) {
-  if (!fecha) return ""
-  const f = fecha.replace(" ", "T")
-  return f.split("T")[1]?.slice(0, 5)
-}
-
-function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
-  const [turnos,   setTurnos]   = useState([])
-  const [pagos,    setPagos]    = useState([])
-  const [deudas,   setDeudas]   = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [saldoFavor, setSaldoFavor] = useState(0)
+function ModalCuentaCliente({ cliente, onCerrar }) {
+  const [movimientos, setMovimientos] = useState([])
+  const [cargando,    setCargando]    = useState(true)
+  const [saldoFavor,  setSaldoFavor]  = useState(0)
+  const [totalDeuda,  setTotalDeuda]  = useState(0)
 
   useEffect(() => {
-    setCargando(true)
-    Promise.all([
-        api.get(`/turnos/?cliente_id=${cliente.id}`),
-        api.get(`/pagos/`),
-        api.get(`/deudas/cliente/${cliente.id}?solo_pendientes=false`),
-        api.get(`/clientes/${cliente.id}`),
-    ]).then(([turnosRes, pagosRes, deudasRes, clienteRes]) => {
-      const turnosCliente = turnosRes.data
-        .filter(t => !["cancelado", "reservado"].includes(t.estado))
-        .sort((a, b) => new Date(b.fecha_hora_inicio) - new Date(a.fecha_hora_inicio))
-        .slice(0, 50)
+  setCargando(true)
+  api.get(`/clientes/${cliente.id}/balance`)
+    .then(res => {
+      setMovimientos(res.data.movimientos)
+      const saldo = res.data.saldo_final
+      if (saldo > 0) {
+        setTotalDeuda(saldo)
+        setSaldoFavor(0)
+      } else {
+        setTotalDeuda(0)
+        setSaldoFavor(Math.abs(saldo))
+      }
+    })
+    .catch(console.error)
+    .finally(() => setCargando(false))
+}, [cliente.id])
 
-      const pagosCliente = pagosRes.data
-        .filter(p => p.cliente_id === cliente.id && p.estado_pago === "pagado")
-        .sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
+  const saldoNeto = movimientos.length > 0
+  ? movimientos[movimientos.length - 1].saldo
+  : 0
 
-      setTurnos(turnosCliente)
-      setPagos(pagosCliente)
-      setDeudas(deudasRes.data)
-      setSaldoFavor(Number(clienteRes.data.saldo_favor) || 0)
-
-    }).catch(console.error)
-      .finally(() => setCargando(false))
-  }, [cliente.id])
-
-  const totalDeuda = deudas
-    .filter(d => d.estado !== "saldada")
-    .reduce((acc, d) => acc + Number(d.saldo_pendiente), 0)
-
-  function pagosDelTurno(turno_id) {
-    return pagos.filter(p => p.turno_id === turno_id)
-  }
-
-  function deudaDelTurno(turno_id) {
-    return deudas.find(d => d.turno_id === turno_id && d.estado !== "saldada")
-  }
-
-  function badgeTurno(turno) {
-    const deuda = deudaDelTurno(turno.turno_id)
-    if (turno.estado === "completado" && !deuda) {
-      return { label: "Pagado", bg: "#0a1f0a", color: "#44cc44", border: "#1a5a1a" }
-    }
-    if (deuda) {
-      return { label: "Sin pagar", bg: TEMA.primarioBg, color: TEMA.primarioHover, border: TEMA.primarioBorder }
-    }
-    if (turno.estado === "asistido") {
-      return { label: "Asistido", bg: "#0a1f0a", color: "#44cc44", border: "#1a5a1a" }
-    }
-    return { label: turno.estado, bg: TEMA.superficie, color: TEMA.textoSecundario, border: TEMA.borde }
-  }
   async function exportarPDF() {
-        const doc = new jsPDF()
-        doc.setFontSize(18)
-        doc.setTextColor(204, 0, 0)
-        doc.text("Peluqueria Isa", 14, 18)
-        doc.setFontSize(12)
-        doc.setTextColor(80, 80, 80)
-        doc.text(`Estado de cuenta - ${cliente.nombre}`, 14, 26)
-        doc.setFontSize(9)
-        doc.setTextColor(100, 100, 100)
-        doc.text(`Generado el ${new Date().toLocaleDateString("es-AR")}`, 14, 32)
-        doc.setFontSize(11)
-        doc.setTextColor(0, 0, 0)
-        doc.text(`Deuda pendiente total: $${totalDeuda.toLocaleString("es-AR")}`, 14, 42)
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.setTextColor(204, 0, 0)
+    doc.text("Peluqueria Isa", 14, 18)
+    doc.setFontSize(12)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Estado de cuenta - ${cliente.nombre}`, 14, 26)
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Generado el ${new Date().toLocaleDateString("es-AR")}`, 14, 32)
+    doc.setFontSize(11)
+    doc.setTextColor(0, 0, 0)
+    doc.text(
+      saldoNeto > 0
+        ? `Saldo pendiente: $${saldoNeto.toLocaleString("es-AR")}`
+        : saldoNeto < 0
+          ? `Saldo a favor: $${Math.abs(saldoNeto).toLocaleString("es-AR")}`
+          : "Al dia - sin deuda pendiente",
+      14, 42
+    )
 
-        const filas = turnos.map(turno => {
-            const pagosTurno   = pagos.filter(p => p.turno_id === turno.turno_id)
-            const deuda        = deudas.find(d => d.turno_id === turno.turno_id && d.estado !== "saldada")
-            const fecha        = new Date(turno.fecha_hora_inicio.replace(" ", "T"))
-            const fechaStr     = fecha.toLocaleDateString("es-AR", { day:"numeric", month:"short", year:"numeric" })
-            const horaStr      = turno.fecha_hora_inicio.replace(" ", "T").split("T")[1]?.slice(0, 5)
-            const servicio     = turno.servicio?.nombre || `Servicio #${turno.servicio_id}`
-            const estado       = deuda ? "Sin pagar" : turno.estado === "completado" ? "Pagado" : turno.estado
-            const monto        = deuda
-            ? `-$${Number(deuda.saldo_pendiente).toLocaleString("es-AR")}`
-            : pagosTurno.length > 0
-                ? `$${pagosTurno.reduce((acc, p) => acc + Number(p.monto), 0).toLocaleString("es-AR")}`
-                : "-"
-            const pagosDetalle = pagosTurno.map(p =>
-            `${p.tipo_pago === "senia" ? "Sena" : "Saldo"} $${Number(p.monto).toLocaleString("es-AR")} · ${new Date(p.fecha_pago).toLocaleDateString("es-AR")} · ${p.metodo_pago}`
-            ).join(" / ")
+    autoTable(doc, {
+      startY: 48,
+      head: [["Fecha", "Descripcion", "Debe", "Haber", "Saldo"]],
+      body: movimientos.map(m => [
+        m.fecha,
+        m.descripcion,
+        m.debe  > 0 ? `$${m.debe.toLocaleString("es-AR")}` : "",
+        m.haber > 0 ? `$${m.haber.toLocaleString("es-AR")}` : "",
+        `$${Math.abs(m.saldo).toLocaleString("es-AR")}${m.saldo < 0 ? " +" : ""}`,
+      ]),
+      styles:             { fontSize:8, cellPadding:3 },
+      headStyles:         { fillColor:[204, 0, 0], textColor:255, fontStyle:"bold" },
+      alternateRowStyles: { fillColor:[245, 245, 245] },
+      columnStyles: {
+        0: { cellWidth:28 },
+        1: { cellWidth:60 },
+        2: { cellWidth:25 },
+        3: { cellWidth:25 },
+        4: { cellWidth:25 },
+      }
+    })
 
-            return [fechaStr + " " + horaStr + "hs", servicio, estado, monto, pagosDetalle]
-        })
-
-        autoTable(doc, {
-            startY: 48,
-            head: [["Fecha y hora", "Servicio", "Estado", "Monto", "Detalle pagos"]],
-            body: filas,
-            styles:             { fontSize:8, cellPadding:3 },
-            headStyles:         { fillColor:[204, 0, 0], textColor:255, fontStyle:"bold" },
-            alternateRowStyles: { fillColor:[245, 245, 245] },
-            columnStyles: {
-            0: { cellWidth:30 },
-            1: { cellWidth:35 },
-            2: { cellWidth:22 },
-            3: { cellWidth:22 },
-            4: { cellWidth:60 },
-            }
-        })
-
-        doc.save(`cuenta_${cliente.nombre.replace(/ /g, "_")}.pdf`)
-        }
+    doc.save(`cuenta_${cliente.nombre.replace(/ /g, "_")}.pdf`)
+  }
 
   return (
-    <div
-      onClick={onCerrar}
-      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ background: TEMA.superficieAlta, border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"12px", padding:"1.5rem", width:"500px", maxHeight:"85vh", overflowY:"auto" }}
-      >
+    <div onClick={onCerrar}
+      style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: TEMA.superficieAlta, border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"12px", padding:"1.5rem", width:"560px", maxHeight:"85vh", overflowY:"auto" }}>
+
         {/* Encabezado */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
           <div>
@@ -151,87 +105,75 @@ function ModalCuentaCliente({ cliente, onCerrar, onExportarPDF }) {
           <span onClick={onCerrar} style={{ color: TEMA.textoTerciario, cursor:"pointer", fontSize:"18px" }}>✕</span>
         </div>
 
-        {(() => {
-          const saldoNeto = totalDeuda - saldoFavor
-          return (
-            <div style={{
-              background: saldoNeto > 0 ? "#1f1a0a" : saldoNeto < 0 ? "#0a1a2a" : "#0a1f0a",
-              border: `0.5px solid ${saldoNeto > 0 ? TEMA.estados.reservado.border : saldoNeto < 0 ? "#1a4a8a" : "#1a5a1a"}`,
-              borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem"
-            }}>
-              <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:"0 0 2px" }}>Saldo actual</p>
-              <p style={{ fontSize:"16px", fontWeight:500, margin:"0 0 2px",
-                color: saldoNeto > 0 ? "#f0b429" : saldoNeto < 0 ? "#66aaff" : "#44cc44"
-              }}>
-                {saldoNeto > 0 ? formatPeso(saldoNeto) : saldoNeto < 0 ? `-${formatPeso(Math.abs(saldoNeto))}` : "$0"}
-              </p>
-              <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0 }}>
-                {saldoNeto > 0 ? "Debe este monto" : saldoNeto < 0 ? "Tiene saldo a favor" : "Al día"}
-              </p>
-            </div>
-          )
-        })()}
-            <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>Últimos movimientos</p>
+        {/* Tarjeta saldo actual */}
+        <div style={{
+          background: saldoNeto > 0 ? "#1f1a0a" : saldoNeto < 0 ? "#0a1a2a" : "#0a1f0a",
+          border: `0.5px solid ${saldoNeto > 0 ? TEMA.estados.reservado.border : saldoNeto < 0 ? "#1a4a8a" : "#1a5a1a"}`,
+          borderRadius:"8px", padding:"10px 14px", marginBottom:"1.25rem"
+        }}>
+          <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:"0 0 2px" }}>Saldo actual</p>
+          <p style={{ fontSize:"16px", fontWeight:500, margin:"0 0 2px",
+            color: saldoNeto > 0 ? "#f0b429" : saldoNeto < 0 ? "#66aaff" : "#44cc44"
+          }}>
+            {saldoNeto > 0 ? formatPeso(saldoNeto) : saldoNeto < 0 ? `-${formatPeso(Math.abs(saldoNeto))}` : "$0"}
+          </p>
+          <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0 }}>
+            {saldoNeto > 0 ? "Debe este monto" : saldoNeto < 0 ? "Tiene saldo a favor" : "Al día"}
+          </p>
+        </div>
+
+        {/* Tabla de movimientos */}
+        <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 8px" }}>Movimientos</p>
 
         {cargando ? (
           <p style={{ color: TEMA.textoSecundario, fontSize:"13px", textAlign:"center", padding:"1rem" }}>Cargando...</p>
-        ) : turnos.length === 0 ? (
+        ) : movimientos.length === 0 ? (
           <p style={{ color: TEMA.textoTerciario, fontSize:"13px", textAlign:"center", padding:"1rem" }}>Sin movimientos</p>
         ) : (
           <div style={{ border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"8px", overflow:"hidden" }}>
-            {turnos.map((turno, i) => {
-              const badge       = badgeTurno(turno)
-              const pagosTurno  = pagosDelTurno(turno.turno_id)
-              const deuda       = deudaDelTurno(turno.turno_id)
-              const montoMostrar = turno.monto_cobrado || turno.monto_total
+            {/* Encabezado tabla */}
+            <div style={{ display:"grid", gridTemplateColumns:"100px 1fr 90px 90px 90px", padding:"8px 12px", borderBottom:`0.5px solid ${TEMA.bordeSuave}`, fontSize:"11px", color: TEMA.textoTerciario, background: TEMA.superficie }}>
+              <span>Fecha</span>
+              <span>Descripción</span>
+              <span style={{ textAlign:"right" }}>Debe</span>
+              <span style={{ textAlign:"right" }}>Haber</span>
+              <span style={{ textAlign:"right" }}>Saldo</span>
+            </div>
 
-              return (
-                <div key={turno.turno_id}
-                  style={{ padding:"12px 14px", borderBottom: i < turnos.length - 1 ? `0.5px solid ${TEMA.bordeSuave}` : "none" }}
-                >
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom: pagosTurno.length > 0 ? "6px" : 0 }}>
-                    <div>
-                      <p style={{ fontSize:"13px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>
-                        {turno.servicio?.nombre || `Servicio #${turno.servicio_id}`}
-                      </p>
-                      <p style={{ fontSize:"11px", color: TEMA.textoSecundario, margin:"2px 0 0", textTransform:"capitalize" }}>
-                        {formatFecha(turno.fecha_hora_inicio)} · {formatHora(turno.fecha_hora_inicio)}hs
-                      </p>
-                    </div>
-                    <div style={{ textAlign:"right" }}>
-                      <p style={{ fontSize:"13px", fontWeight:500, color: deuda ? TEMA.primarioHover : "#44cc44", margin:"0 0 3px" }}>
-                        {deuda ? `-${formatPeso(deuda.saldo_pendiente)}` : formatPeso(montoMostrar)}
-                      </p>
-                      <span style={{ fontSize:"10px", padding:"2px 8px", borderRadius:"20px", background: badge.bg, color: badge.color, border:`0.5px solid ${badge.border}` }}>
-                        {badge.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Pagos del turno */}
-                  {pagosTurno.length > 0 && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:"6px", marginTop:"6px" }}>
-                      {pagosTurno.map(pago => (
-                        <span key={pago.pago_id} style={{ fontSize:"10px", color: TEMA.textoTerciario }}>
-                          {pago.tipo_pago === "senia" ? "Seña" : "Saldo"} {formatPeso(pago.monto)} · {new Date(pago.fecha_pago).toLocaleDateString("es-AR")} · {pago.metodo_pago}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+            {/* Filas */}
+            {movimientos.map((m, i) => (
+              <div key={i}
+                style={{ display:"grid", gridTemplateColumns:"100px 1fr 90px 90px 90px", padding:"10px 12px",
+                  borderBottom: i < movimientos.length - 1 ? `0.5px solid ${TEMA.bordeSuave}` : "none",
+                  background: i % 2 === 0 ? "transparent" : `${TEMA.superficie}55`
+                }}>
+                <span style={{ fontSize:"11px", color: TEMA.textoTerciario }}>{m.fecha}</span>
+                <span style={{ fontSize:"12px", color: TEMA.textoPrimario, fontWeight: m.tipo === "debe" ? 500 : 400 }}>
+                  {m.descripcion}
+                </span>
+                <span style={{ fontSize:"12px", textAlign:"right", color: m.debe > 0 ? TEMA.primarioHover : TEMA.textoTerciario, fontWeight: m.debe > 0 ? 500 : 400 }}>
+                  {m.debe > 0 ? formatPeso(m.debe) : ""}
+                </span>
+                <span style={{ fontSize:"12px", textAlign:"right", color: m.haber > 0 ? "#44cc44" : TEMA.textoTerciario, fontWeight: m.haber > 0 ? 500 : 400 }}>
+                  {m.haber > 0 ? formatPeso(m.haber) : ""}
+                </span>
+                <span style={{ fontSize:"12px", textAlign:"right", fontWeight:500,
+                  color: m.saldo > 0 ? "#f0b429" : m.saldo < 0 ? "#66aaff" : "#44cc44"
+                }}>
+                  {formatPeso(Math.abs(m.saldo))}{m.saldo < 0 ? " +" : ""}
+                </span>
+              </div>
+            ))}
           </div>
-      )}
+        )}
 
+        {/* Botones */}
         <div style={{ display:"flex", gap:"8px", marginTop:"1rem" }}>
-          <button
-            onClick={exportarPDF}
+          <button onClick={exportarPDF}
             style={{ flex:1, padding:"10px", borderRadius:"6px", background: TEMA.primario, border:"none", color:"white", fontSize:"13px", fontWeight:500, cursor:"pointer" }}>
              Descargar PDF
-            </button>
-          <button
-            onClick={onCerrar}
+          </button>
+          <button onClick={onCerrar}
             style={{ flex:1, padding:"10px", borderRadius:"6px", background:"transparent", border:`0.5px solid ${TEMA.borde}`, color: TEMA.textoSecundario, fontSize:"13px", cursor:"pointer" }}>
             Cerrar
           </button>

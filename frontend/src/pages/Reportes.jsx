@@ -293,29 +293,35 @@ function ReporteAnillo() {
   )
 }
 
-function ReporteMetodosPago() {
-  const hoy = new Date()
-  const [mes,      setMes]      = useState(hoy.getMonth() + 1)
-  const [anio,     setAnio]     = useState(hoy.getFullYear())
-  const [datos,    setDatos]    = useState(null)
-  const [cargando, setCargando] = useState(false)
+  function ReporteMetodosPago() {
+    const hoy = new Date()
+    const [mes,      setMes]      = useState(hoy.getMonth() + 1)
+    const [anio,     setAnio]     = useState(hoy.getFullYear())
+    const [datos,    setDatos]    = useState(null)
+    const [cargando, setCargando] = useState(false)
+    const nombresMeses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    const anios = [hoy.getFullYear() - 1, hoy.getFullYear()]
 
-  const nombresMeses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    const barData = datos ? [
+      { metodo:"Efectivo",      total: datos.efectivo,      color:"#ff8c00" },
+      { metodo:"Transferencia", total: datos.transferencia, color:"#00bfff" },
+    ] : []
+    // ─────────────────────
 
-  useEffect(() => {
-    setCargando(true)
-    api.get(`/pagos/reporte/metodos-pago?mes=${mes}&anio=${anio}`)
-      .then(res => setDatos(res.data))
-      .catch(console.error)
-      .finally(() => setCargando(false))
-  }, [mes, anio])
-
-  const barData = datos ? [
-    { metodo:"Efectivo",      total: datos.efectivo,      color:"#ff8c00" },
-    { metodo:"Transferencia", total: datos.transferencia, color:"#00bfff" },
-  ] : []
-
-  const anios = [hoy.getFullYear() - 1, hoy.getFullYear()]
+    useEffect(() => {
+      setCargando(true)
+      api.get(`/pagos/reporte/metodos-pago?mes=${mes}&anio=${anio}`)
+        .then(res => {
+          const resultado = { efectivo: 0, transferencia: 0 }
+          res.data.forEach(item => {
+            if (item.metodo === "efectivo")      resultado.efectivo      = item.total
+            if (item.metodo === "transferencia") resultado.transferencia = item.total
+          })
+          setDatos(resultado)
+        })
+        .catch(console.error)
+        .finally(() => setCargando(false))
+    }, [mes, anio])
 
   return (
     <div style={{ flex:1 }}>
