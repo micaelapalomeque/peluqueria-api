@@ -253,7 +253,7 @@ def marcar_ausente(turno_id: int, db: Session = Depends(get_db)):
     if deuda and deuda.estado != "saldada":
         deuda.estado = "saldada"
         deuda.observacion = "Cancelada por ausencia del cliente"
-    turno.estado = "cancelado"
+    turno.estado = "ausente"
     db.commit()
     db.refresh(turno)
     return turno

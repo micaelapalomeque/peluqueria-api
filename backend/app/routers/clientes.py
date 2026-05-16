@@ -76,7 +76,7 @@ def clientes_frecuentes(db: Session = Depends(get_db)):
     ]
 
 
-# BALANCE DEL CLIENTE — debe ir antes de /{cliente_id}
+
 @router.get("/{cliente_id}/balance")
 def balance_cliente(cliente_id: int, db: Session = Depends(get_db)):
     cliente = db.query(models.Cliente).filter(models.Cliente.id == cliente_id).first()
@@ -209,3 +209,83 @@ def dar_alta_cliente(cliente_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(cliente)
     return cliente
+
+# TOP 10 CLIENTES CON MÁS ASISTENCIAS
+@router.get("/ranking/asistencias")
+def ranking_asistencias(db: Session = Depends(get_db)):
+    resultados = (
+        db.query(
+            models.Cliente.id,
+            models.Cliente.nombre,
+            models.Cliente.celular,
+            func.count(models.Turno.turno_id).label("total")
+        )
+        .join(models.Turno, models.Turno.cliente_id == models.Cliente.id)
+        .filter(models.Turno.estado == "completado")
+        .group_by(models.Cliente.id)
+        .order_by(func.count(models.Turno.turno_id).desc())
+        .limit(10)
+        .all()
+    )
+    return [{ "id": r.id, "nombre": r.nombre, "celular": r.celular, "total": r.total } for r in resultados]
+
+
+# TOP 10 CLIENTES CON MÁS AUSENCIAS
+@router.get("/ranking/ausencias")
+def ranking_ausencias(db: Session = Depends(get_db)):
+    resultados = (
+        db.query(
+            models.Cliente.id,
+            models.Cliente.nombre,
+            models.Cliente.celular,
+            func.count(models.Turno.turno_id).label("total")
+        )
+        .join(models.Turno, models.Turno.cliente_id == models.Cliente.id)
+        .filter(models.Turno.estado == "ausente")
+        .group_by(models.Cliente.id)
+        .order_by(func.count(models.Turno.turno_id).desc())
+        .limit(10)
+        .all()
+    )
+    return [{ "id": r.id, "nombre": r.nombre, "celular": r.celular, "total": r.total } for r in resultados]
+
+
+# TOP 10 CLIENTES CON MÁS DEUDA
+@router.get("/ranking/deudas")
+def ranking_deudas(db: Session = Depends(get_db)):
+    clientes = db.query(models.Cliente).filter(models.Cliente.activo == True).all()
+
+    resultados = []
+    for cliente in clientes:
+        turnos = (
+            db.query(models.Turno)
+            .filter(
+                models.Turno.cliente_id == cliente.id,
+                models.Turno.estado.notin_(["cancelado", "reservado"])
+            )
+            .all()
+        )
+        pagos = (
+            db.query(models.Pago)
+            .filter(
+                models.Pago.cliente_id == cliente.id,
+                models.Pago.estado_pago == "pagado",
+                models.Pago.tipo_pago.notin_(["propina", "recargo"])
+            )
+            .all()
+        )
+
+        total_debe  = sum(float(t.monto_cobrado or t.monto_total) for t in turnos)
+        total_haber = sum(float(p.monto) for p in pagos)
+        saldo       = total_debe - total_haber
+
+        if saldo > 0:
+            resultados.append({
+                "id":      cliente.id,
+                "nombre":  cliente.nombre,
+                "celular": cliente.celular,
+                "total":   round(saldo, 2),
+            })
+
+    resultados.sort(key=lambda r: r["total"], reverse=True)
+    return resultados[:10]

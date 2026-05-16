@@ -35,9 +35,7 @@ function TooltipCustom({ active, payload, label }) {
     return (
       <div style={{ background:"#1e1e1e", border:"0.5px solid #444", borderRadius:"6px", padding:"8px 12px" }}>
         <p style={{ fontSize:"12px", color:"#888", margin:"0 0 2px" }}>{label}</p>
-        <p style={{ fontSize:"14px", fontWeight:500, color:"#44cc44", margin:0 }}>
-          {formatPeso(payload[0].value)}
-        </p>
+        <p style={{ fontSize:"14px", fontWeight:500, color:"#44cc44", margin:0 }}>{formatPeso(payload[0].value)}</p>
       </div>
     )
   }
@@ -63,9 +61,7 @@ function ReporteFinanciero() {
       .finally(() => setCargando(false))
   }
 
-  useEffect(() => {
-    cargarDatos(formatFechaISO(lunes))
-  }, [offsetSemana])
+  useEffect(() => { cargarDatos(formatFechaISO(lunes)) }, [offsetSemana])
 
   function buscarFechaManual() {
     if (!fechaManual) return
@@ -86,63 +82,36 @@ function ReporteFinanciero() {
 
   return (
     <div>
-      <p style={{ fontSize:"15px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>
-        Ingresos por día
-      </p>
-
+      <p style={{ fontSize:"15px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>Ingresos por día</p>
       <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"12px", flexWrap:"wrap" }}>
-        <button
-          onClick={() => { setOffsetSemana(p => (p ?? 0) - 1); setFechaManual(""); setErrorFecha("") }}
+        <button onClick={() => { setOffsetSemana(p => (p ?? 0) - 1); setFechaManual(""); setErrorFecha("") }}
           disabled={offsetSemana !== null && offsetSemana <= -4}
-          style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: offsetSemana !== null && offsetSemana <= -4 ? TEMA.textoDeshabilitado : TEMA.textoSecundario, cursor: offsetSemana !== null && offsetSemana <= -4 ? "not-allowed" : "pointer", fontSize:"13px" }}
-        >←</button>
+          style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: offsetSemana !== null && offsetSemana <= -4 ? TEMA.textoDeshabilitado : TEMA.textoSecundario, cursor: offsetSemana !== null && offsetSemana <= -4 ? "not-allowed" : "pointer", fontSize:"13px" }}>←</button>
         <span style={{ fontSize:"13px", color: TEMA.textoPrimario, fontWeight:500 }}>{labelSemana}</span>
-        <button
-          onClick={() => { setOffsetSemana(p => Math.min(0, (p ?? 0) + 1)); setFechaManual(""); setErrorFecha("") }}
+        <button onClick={() => { setOffsetSemana(p => Math.min(0, (p ?? 0) + 1)); setFechaManual(""); setErrorFecha("") }}
           disabled={offsetSemana === 0 || offsetSemana === null}
-          style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: offsetSemana === 0 || offsetSemana === null ? TEMA.textoDeshabilitado : TEMA.textoSecundario, cursor: offsetSemana === 0 || offsetSemana === null ? "not-allowed" : "pointer", fontSize:"13px" }}
-        >→</button>
-        <button
-          onClick={() => { setOffsetSemana(0); setFechaManual(""); setErrorFecha("") }}
-          style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: TEMA.textoSecundario, cursor:"pointer", fontSize:"13px" }}
-        >Hoy</button>
+          style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: offsetSemana === 0 || offsetSemana === null ? TEMA.textoDeshabilitado : TEMA.textoSecundario, cursor: offsetSemana === 0 || offsetSemana === null ? "not-allowed" : "pointer", fontSize:"13px" }}>→</button>
+        <button onClick={() => { setOffsetSemana(0); setFechaManual(""); setErrorFecha("") }}
+          style={{ padding:"6px 12px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: TEMA.textoSecundario, cursor:"pointer", fontSize:"13px" }}>Hoy</button>
       </div>
-
       <div style={{ display:"flex", gap:"8px", alignItems:"center", marginBottom:"4px" }}>
-        <input type="date" value={fechaManual}
-          onChange={e => { setFechaManual(e.target.value); setErrorFecha("") }}
-          style={{ padding:"6px 10px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color: TEMA.textoPrimario, fontSize:"12px" }}
-        />
+        <input type="date" value={fechaManual} onChange={e => { setFechaManual(e.target.value); setErrorFecha("") }}
+          style={{ padding:"6px 10px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color: TEMA.textoPrimario, fontSize:"12px" }} />
         <button onClick={buscarFechaManual} disabled={!fechaManual}
-          style={{ padding:"6px 14px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: !fechaManual ? TEMA.textoDeshabilitado : TEMA.textoSecundario, cursor: !fechaManual ? "not-allowed" : "pointer", fontSize:"12px" }}
-        >Ver semana</button>
+          style={{ padding:"6px 14px", borderRadius:"6px", border:`0.5px solid ${TEMA.borde}`, background: TEMA.superficie, color: !fechaManual ? TEMA.textoDeshabilitado : TEMA.textoSecundario, cursor: !fechaManual ? "not-allowed" : "pointer", fontSize:"12px" }}>Ver semana</button>
       </div>
       {errorFecha && <p style={{ fontSize:"11px", color: TEMA.primarioHover, margin:"0 0 12px" }}>{errorFecha}</p>}
       {!errorFecha && <div style={{ marginBottom:"12px" }} />}
-
       <div style={{ background:"#0a1f0a", border:"0.5px solid #1a5a1a", borderRadius:"8px", padding:"12px 16px", marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <span style={{ fontSize:"13px", color: TEMA.textoSecundario }}>Total cobrado esta semana</span>
         <span style={{ fontSize:"18px", fontWeight:500, color:"#44cc44" }}>{formatPeso(totalSemana)}</span>
       </div>
-
-      {cargando ? (
-        <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p>
-      ) : (
+      {cargando ? <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p> : (
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={datos} margin={{ top:10, right:10, left:10, bottom:5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
-            <XAxis dataKey="dia"
-              tickFormatter={(value, index) => {
-                const item = datos[index]
-                if (!item) return value
-                const fecha = new Date(item.fecha + "T00:00:00")
-                return `${value} ${fecha.getDate()}/${fecha.getMonth() + 1}`
-              }}
-              tick={{ fill: TEMA.textoSecundario, fontSize:11 }}
-              axisLine={{ stroke:"#333" }} tickLine={false}
-            />
-            <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`}
-              tick={{ fill: TEMA.textoSecundario, fontSize:11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="dia" tickFormatter={(value, index) => { const item = datos[index]; if (!item) return value; const fecha = new Date(item.fecha + "T00:00:00"); return `${value} ${fecha.getDate()}/${fecha.getMonth() + 1}` }} tick={{ fill: TEMA.textoSecundario, fontSize:11 }} axisLine={{ stroke:"#333" }} tickLine={false} />
+            <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} tick={{ fill: TEMA.textoSecundario, fontSize:11 }} axisLine={false} tickLine={false} />
             <Tooltip content={<TooltipCustom />} cursor={{ fill:"rgba(255,255,255,0.05)" }} />
             <Bar dataKey="total" fill="#CC0000" radius={[4,4,0,0]} maxBarSize={60} />
           </BarChart>
@@ -157,9 +126,7 @@ function TooltipMensual({ active, payload, label }) {
     return (
       <div style={{ background:"#1e1e1e", border:"0.5px solid #444", borderRadius:"6px", padding:"8px 12px" }}>
         <p style={{ fontSize:"12px", color:"#888", margin:"0 0 2px" }}>{label}</p>
-        <p style={{ fontSize:"14px", fontWeight:500, color:"#44cc44", margin:0 }}>
-          {formatPeso(payload[0].value)}
-        </p>
+        <p style={{ fontSize:"14px", fontWeight:500, color:"#44cc44", margin:0 }}>{formatPeso(payload[0].value)}</p>
       </div>
     )
   }
@@ -180,7 +147,7 @@ function ReporteMensual() {
   }, [periodo])
 
   const totalPeriodo = datos.reduce((acc, d) => acc + d.total, 0)
-  const opciones     = [
+  const opciones = [
     { key:"1",  label:"Mes actual" },
     { key:"2",  label:"Bimestral"  },
     { key:"3",  label:"Trimestral" },
@@ -189,32 +156,24 @@ function ReporteMensual() {
 
   return (
     <div style={{ marginTop:"2rem", borderTop:`0.5px solid ${TEMA.bordeSuave}`, paddingTop:"1.5rem" }}>
-      <p style={{ fontSize:"15px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>
-        Ingresos por mes
-      </p>
+      <p style={{ fontSize:"15px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>Ingresos por mes</p>
       <div style={{ display:"flex", gap:"8px", marginBottom:"1.25rem", flexWrap:"wrap" }}>
         {opciones.map(op => (
           <button key={op.key} onClick={() => setPeriodo(op.key)}
-            style={{
-              padding:"6px 14px", borderRadius:"6px", fontSize:"13px", cursor:"pointer",
+            style={{ padding:"6px 14px", borderRadius:"6px", fontSize:"13px", cursor:"pointer",
               border:     periodo === op.key ? `0.5px solid ${TEMA.primario}` : `0.5px solid ${TEMA.borde}`,
               background: periodo === op.key ? TEMA.primarioBg : TEMA.superficie,
               color:      periodo === op.key ? TEMA.primarioHover : TEMA.textoSecundario,
-            }}
-          >{op.label}</button>
+            }}>{op.label}</button>
         ))}
       </div>
-
       <div style={{ background:"#0a1f0a", border:"0.5px solid #1a5a1a", borderRadius:"8px", padding:"12px 16px", marginBottom:"1.25rem", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <span style={{ fontSize:"13px", color: TEMA.textoSecundario }}>
           Total cobrado {periodo === "1" ? "este mes" : periodo === "2" ? "estos 2 meses" : periodo === "3" ? "estos 3 meses" : "este año"}
         </span>
         <span style={{ fontSize:"18px", fontWeight:500, color:"#44cc44" }}>{formatPeso(totalPeriodo)}</span>
       </div>
-
-      {cargando ? (
-        <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p>
-      ) : (
+      {cargando ? <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p> : (
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={datos} margin={{ top:10, right:10, left:10, bottom:5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
@@ -252,19 +211,14 @@ function ReporteAnillo() {
 
   return (
     <div style={{ flex:1 }}>
-      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 4px" }}>
-        Situación del mes
-      </p>
-      <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 1.25rem", textTransform:"capitalize" }}>
-        {datos.mes}
-      </p>
+      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 4px" }}>Situación del mes</p>
+      <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"0 0 1.25rem", textTransform:"capitalize" }}>{datos.mes}</p>
       <div style={{ display:"flex", alignItems:"center", gap:"1.5rem", flexWrap:"wrap" }}>
         <PieChart width={200} height={200}>
           <Pie data={pieData} cx={95} cy={95} innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
             {pieData.map((entry, i) => <Cell key={i} fill={entry.color} stroke="transparent" />)}
           </Pie>
-          <Tooltip formatter={(value) => formatPeso(value)}
-            contentStyle={{ background:"#1e1e1e", border:"0.5px solid #444", borderRadius:"6px", fontSize:"12px" }} />
+          <Tooltip formatter={(value) => formatPeso(value)} contentStyle={{ background:"#1e1e1e", border:"0.5px solid #444", borderRadius:"6px", fontSize:"12px" }} />
         </PieChart>
         <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
           <div>
@@ -293,41 +247,38 @@ function ReporteAnillo() {
   )
 }
 
-  function ReporteMetodosPago() {
-    const hoy = new Date()
-    const [mes,      setMes]      = useState(hoy.getMonth() + 1)
-    const [anio,     setAnio]     = useState(hoy.getFullYear())
-    const [datos,    setDatos]    = useState(null)
-    const [cargando, setCargando] = useState(false)
-    const nombresMeses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
-    const anios = [hoy.getFullYear() - 1, hoy.getFullYear()]
+function ReporteMetodosPago() {
+  const hoy = new Date()
+  const [mes,      setMes]      = useState(hoy.getMonth() + 1)
+  const [anio,     setAnio]     = useState(hoy.getFullYear())
+  const [datos,    setDatos]    = useState(null)
+  const [cargando, setCargando] = useState(false)
 
-    const barData = datos ? [
-      { metodo:"Efectivo",      total: datos.efectivo,      color:"#ff8c00" },
-      { metodo:"Transferencia", total: datos.transferencia, color:"#00bfff" },
-    ] : []
-    // ─────────────────────
+  const nombresMeses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+  const anios   = [hoy.getFullYear() - 1, hoy.getFullYear()]
+  const barData = datos ? [
+    { metodo:"Efectivo",      total: datos.efectivo,      color:"#ff8c00" },
+    { metodo:"Transferencia", total: datos.transferencia, color:"#00bfff" },
+  ] : []
 
-    useEffect(() => {
-      setCargando(true)
-      api.get(`/pagos/reporte/metodos-pago?mes=${mes}&anio=${anio}`)
-        .then(res => {
-          const resultado = { efectivo: 0, transferencia: 0 }
-          res.data.forEach(item => {
-            if (item.metodo === "efectivo")      resultado.efectivo      = item.total
-            if (item.metodo === "transferencia") resultado.transferencia = item.total
-          })
-          setDatos(resultado)
+  useEffect(() => {
+    setCargando(true)
+    api.get(`/pagos/reporte/metodos-pago?mes=${mes}&anio=${anio}`)
+      .then(res => {
+        const resultado = { efectivo: 0, transferencia: 0 }
+        res.data.forEach(item => {
+          if (item.metodo === "efectivo")      resultado.efectivo      = item.total
+          if (item.metodo === "transferencia") resultado.transferencia = item.total
         })
-        .catch(console.error)
-        .finally(() => setCargando(false))
-    }, [mes, anio])
+        setDatos(resultado)
+      })
+      .catch(console.error)
+      .finally(() => setCargando(false))
+  }, [mes, anio])
 
   return (
     <div style={{ flex:1 }}>
-      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>
-        Métodos de pago
-      </p>
+      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>Métodos de pago</p>
       <div style={{ display:"flex", gap:"8px", marginBottom:"1.25rem" }}>
         <select value={mes} onChange={e => setMes(Number(e.target.value))}
           style={{ flex:1, padding:"6px 10px", background: TEMA.superficie, border:`0.5px solid ${TEMA.borde}`, borderRadius:"6px", color: TEMA.textoPrimario, fontSize:"12px" }}>
@@ -338,18 +289,14 @@ function ReporteAnillo() {
           {anios.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
-
-      {cargando ? (
-        <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p>
-      ) : (
+      {cargando ? <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p> : (
         <>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData} margin={{ top:10, right:10, left:0, bottom:5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
               <XAxis dataKey="metodo" tick={{ fill: TEMA.textoSecundario, fontSize:11 }} axisLine={{ stroke:"#333" }} tickLine={false} />
               <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} tick={{ fill: TEMA.textoSecundario, fontSize:10 }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(value) => formatPeso(value)}
-                contentStyle={{ background:"#1e1e1e", border:"0.5px solid #444", borderRadius:"6px", fontSize:"12px" }} />
+              <Tooltip formatter={(value) => formatPeso(value)} contentStyle={{ background:"#1e1e1e", border:"0.5px solid #444", borderRadius:"6px", fontSize:"12px" }} />
               <Bar dataKey="total" radius={[4,4,0,0]} maxBarSize={60}>
                 {barData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
@@ -371,6 +318,74 @@ function ReporteAnillo() {
   )
 }
 
+function RankingCard({ titulo, datos, colorValor, formatValor, cargando }) {
+  return (
+    <div style={{ flex:1, minWidth:"260px" }}>
+      <p style={{ fontSize:"14px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 12px" }}>{titulo}</p>
+      {cargando ? (
+        <p style={{ color: TEMA.textoSecundario, fontSize:"13px" }}>Cargando...</p>
+      ) : datos.length === 0 ? (
+        <p style={{ color: TEMA.textoTerciario, fontSize:"13px" }}>Sin datos</p>
+      ) : (
+        <div style={{ border:`0.5px solid ${TEMA.bordeSuave}`, borderRadius:"8px", overflow:"hidden" }}>
+          {datos.map((item, i) => (
+            <div key={item.id}
+              style={{ display:"flex", alignItems:"center", padding:"10px 14px",
+                borderBottom: i < datos.length - 1 ? `0.5px solid ${TEMA.bordeSuave}` : "none",
+                background: i % 2 === 0 ? "transparent" : `${TEMA.superficie}55` }}>
+              <span style={{ fontSize:"13px", fontWeight:500, minWidth:"24px",
+                color: i === 0 ? "#f0b429" : i === 1 ? "#aaaaaa" : i === 2 ? "#cd7f32" : TEMA.textoTerciario }}>
+                {i + 1}
+              </span>
+              <div style={{ flex:1 }}>
+                <p style={{ fontSize:"13px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>{item.nombre}</p>
+                <p style={{ fontSize:"11px", color: TEMA.textoTerciario, margin:0 }}>{item.celular}</p>
+              </div>
+              <span style={{ fontSize:"13px", fontWeight:500, color: colorValor }}>
+                {formatValor(item.total)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReporteClientes() {
+  const [asistencias, setAsistencias] = useState([])
+  const [ausencias,   setAusencias]   = useState([])
+  const [deudas,      setDeudas]      = useState([])
+  const [cargando,    setCargando]    = useState(true)
+
+  useEffect(() => {
+    setCargando(true)
+    Promise.all([
+      api.get("/clientes/ranking/asistencias"),
+      api.get("/clientes/ranking/ausencias"),
+      api.get("/clientes/ranking/deudas"),
+    ]).then(([asistRes, ausRes, deudasRes]) => {
+      setAsistencias(asistRes.data)
+      setAusencias(ausRes.data)
+      setDeudas(deudasRes.data)
+    }).catch(console.error)
+      .finally(() => setCargando(false))
+  }, [])
+
+  return (
+    <div>
+      <p style={{ fontSize:"15px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1.5rem" }}>
+        Ranking de clientes
+      </p>
+      <div style={{ display:"flex", gap:"1.5rem", flexWrap:"wrap" }}>
+        <RankingCard titulo=" Más asistencias" datos={asistencias} cargando={cargando} colorValor="#44cc44" formatValor={v => `${v} turnos`} />
+        <RankingCard titulo=" Más ausencias"   datos={ausencias}   cargando={cargando} colorValor={TEMA.primarioHover} formatValor={v => `${v} ausencias`} />
+        <RankingCard titulo=" Más deuda"       datos={deudas}      cargando={cargando} colorValor="#f0b429" formatValor={v => formatPeso(v)} />
+      </div>
+    </div>
+  )
+}
+
 function Reportes() {
   const [abierto, setAbierto] = useState(null)
 
@@ -380,7 +395,6 @@ function Reportes() {
 
   return (
     <div style={{ flex:1, padding:"1.5rem", background: TEMA.fondo, overflowY:"auto" }}>
-
       <div style={{ marginBottom:"1.25rem" }}>
         <p style={{ fontSize:"16px", fontWeight:500, color: TEMA.textoPrimario, margin:0 }}>Reportes</p>
         <p style={{ fontSize:"12px", color: TEMA.textoSecundario, margin:"2px 0 0" }}>Estadísticas y análisis del negocio</p>
@@ -389,15 +403,12 @@ function Reportes() {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"1.25rem" }}>
         {secciones.map(sec => (
           <button key={sec.key} onClick={() => toggle(sec.key)}
-            style={{
-              padding:"16px", borderRadius:"8px", cursor:"pointer", textAlign:"left",
-              border:      abierto === sec.key ? `0.5px solid ${TEMA.primario}` : `0.5px solid ${TEMA.borde}`,
-              background:  abierto === sec.key ? TEMA.primarioBg : TEMA.superficie,
-              color:       abierto === sec.key ? TEMA.primarioHover : TEMA.textoSecundario,
-              fontSize:"14px", fontWeight:500,
-              display:"flex", alignItems:"center", gap:"10px",
-            }}
-          >
+            style={{ padding:"16px", borderRadius:"8px", cursor:"pointer", textAlign:"left",
+              border:     abierto === sec.key ? `0.5px solid ${TEMA.primario}` : `0.5px solid ${TEMA.borde}`,
+              background: abierto === sec.key ? TEMA.primarioBg : TEMA.superficie,
+              color:      abierto === sec.key ? TEMA.primarioHover : TEMA.textoSecundario,
+              fontSize:"14px", fontWeight:500, display:"flex", alignItems:"center", gap:"10px",
+            }}>
             <img src={sec.icono} alt={sec.label} style={{ width:"32px", height:"32px", objectFit:"contain" }} />
             <span>{sec.label}</span>
             <span style={{ marginLeft:"auto", fontSize:"12px" }}>{abierto === sec.key ? "▲" : "▼"}</span>
@@ -426,12 +437,7 @@ function Reportes() {
             </div>
           )}
 
-          {abierto === "clientes" && (
-            <div>
-              <p style={{ fontSize:"15px", fontWeight:500, color: TEMA.textoPrimario, margin:"0 0 1rem" }}>Reportes de clientes</p>
-              <p style={{ fontSize:"13px", color: TEMA.textoSecundario }}>Próximamente — clientes nuevos por mes, frecuencia y ausencias.</p>
-            </div>
-          )}
+          {abierto === "clientes" && <ReporteClientes />}
 
           {abierto === "servicios" && (
             <div>
