@@ -257,3 +257,48 @@ def marcar_ausente(turno_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(turno)
     return turno
+@router.get("/reporte/estados")
+def reporte_estados(db: Session = Depends(get_db)):
+    """Tasa de asistencia vs ausencia vs cancelación"""
+    from sqlalchemy import func
+    resultados = (
+        db.query(Turno.estado, func.count(Turno.turno_id).label("total"))
+        .group_by(Turno.estado)
+        .all()
+    )
+    return [{ "estado": r.estado, "total": r.total } for r in resultados]
+
+
+@router.get("/reporte/dias-semana")
+def reporte_dias_semana(db: Session = Depends(get_db)):
+    """Turnos por día de la semana"""
+    from sqlalchemy import func, extract
+    resultados = (
+        db.query(
+            extract("dow", Turno.fecha_hora_inicio).label("dia"),
+            func.count(Turno.turno_id).label("total")
+        )
+        .filter(Turno.estado.notin_(["cancelado"]))
+        .group_by(extract("dow", Turno.fecha_hora_inicio))
+        .order_by(extract("dow", Turno.fecha_hora_inicio))
+        .all()
+    )
+    nombres = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]
+    return [{ "dia": nombres[int(r.dia)], "total": r.total } for r in resultados]
+
+
+@router.get("/reporte/hora-pico")
+def reporte_hora_pico(db: Session = Depends(get_db)):
+    """Horarios con más turnos"""
+    from sqlalchemy import func, extract
+    resultados = (
+        db.query(
+            extract("hour", Turno.fecha_hora_inicio).label("hora"),
+            func.count(Turno.turno_id).label("total")
+        )
+        .filter(Turno.estado.notin_(["cancelado"]))
+        .group_by(extract("hour", Turno.fecha_hora_inicio))
+        .order_by(extract("hour", Turno.fecha_hora_inicio))
+        .all()
+    )
+    return [{ "hora": f"{int(r.hora):02d}:00", "total": r.total } for r in resultados]
