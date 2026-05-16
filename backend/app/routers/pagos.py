@@ -49,31 +49,49 @@ def listar_pagos(db: Session = Depends(get_db)):
     return db.query(Pago).all()
 
 
-# ── REPORTES (deben ir antes de /{pago_id}) ───────────────────────────────────
+# ── REPORTES ───────────────────────────────────
 
 @router.get("/reporte/mes-actual")
 def reporte_mes_actual(db: Session = Depends(get_db)):
+    from app.models import Turno, Cliente
     hoy    = datetime.now()
     inicio = datetime(hoy.year, hoy.month, 1)
 
     cobrado = db.query(func.sum(Pago.monto)).filter(
-        Pago.estado_pago == "pagado",
-        Pago.fecha_pago  >= inicio,
-        Pago.fecha_pago  <= hoy,
-    ).scalar() or 0
+    Pago.estado_pago == "pagado",
+    Pago.fecha_pago  >= inicio,
+    Pago.fecha_pago  <= hoy,
+    Pago.tipo_pago.notin_(["saldo_favor"]),  # excluir saldo_favor porque no es ingreso nuevo
+).scalar() or 0
 
-    adeudado = db.query(func.sum(Deuda.saldo_pendiente)).filter(
-        Deuda.estado != "saldada"
-    ).scalar() or 0
+    # Calcular adeudado desde el balance
+    clientes = db.query(Cliente).filter(Cliente.activo == True).all()
+    adeudado = 0
+    for cliente in clientes:
+        turnos = db.query(Turno).filter(
+            Turno.cliente_id == cliente.id,
+            Turno.estado.notin_(["cancelado", "reservado"])
+        ).all()
+        pagos = db.query(Pago).filter(
+            Pago.cliente_id  == cliente.id,
+            Pago.estado_pago == "pagado",
+            Pago.tipo_pago.notin_(["propina", "recargo"])
+        ).all()
+        total_debe  = sum(float(t.monto_cobrado or t.monto_total) for t in turnos)
+        total_haber = sum(float(p.monto) for p in pagos)
+        saldo = total_debe - total_haber
+        if saldo > 0:
+            adeudado += saldo
 
-    total = float(cobrado) + float(adeudado)
+    adeudado = round(adeudado, 2)
+    total    = float(cobrado) + adeudado
 
     return {
         "cobrado":      float(cobrado),
-        "adeudado":     float(adeudado),
+        "adeudado":     adeudado,
         "total":        total,
-        "pct_cobrado":  round(float(cobrado)  / total * 100, 1) if total > 0 else 0,
-        "pct_adeudado": round(float(adeudado) / total * 100, 1) if total > 0 else 0,
+        "pct_cobrado":  round(float(cobrado) / total * 100, 1) if total > 0 else 0,
+        "pct_adeudado": round(adeudado / total * 100, 1) if total > 0 else 0,
         "mes":          hoy.strftime("%B %Y"),
     }
 
@@ -104,6 +122,7 @@ def ingresos_por_mes(meses: int = 1, db: Session = Depends(get_db)):
         )
         .filter(Pago.estado_pago == "pagado")
         .filter(Pago.fecha_pago >= inicio)
+        .filter(Pago.tipo_pago.notin_(["saldo_favor"]))
         .group_by(
             func.extract("year",  Pago.fecha_pago),
             func.extract("month", Pago.fecha_pago)
@@ -148,6 +167,7 @@ def ingresos_por_semana(fecha_inicio: str, db: Session = Depends(get_db)):
         .filter(Pago.estado_pago == "pagado")
         .filter(Pago.fecha_pago >= inicio)
         .filter(Pago.fecha_pago <= fin.replace(hour=23, minute=59, second=59))
+        .filter(Pago.tipo_pago.notin_(["saldo_favor"]))
         .group_by(func.date(Pago.fecha_pago))
         .all()
     )

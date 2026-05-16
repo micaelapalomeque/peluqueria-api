@@ -33,6 +33,7 @@ function CuentaCorriente() {
   const [busquedaDeudas,    setBusquedaDeudas]    = useState("")
   const [busquedaClientes,  setBusquedaClientes]  = useState("")
   const [busquedaPagos,     setBusquedaPagos]     = useState("")
+  const [balances, setBalances] = useState({})
 
   function cargarTodo() {
     setCargando(true)
@@ -42,7 +43,10 @@ function CuentaCorriente() {
       api.get("/clientes/"),
       api.get("/pagos/"),
       api.get("/clientes/ranking/frecuentes"),
-    ]).then(([pendientes, parciales, clientesRes, pagosRes, frecuentesRes]) => {
+      api.get("/clientes/balance/todos"),  // ← nuevo
+    ]).then(([pendientes, parciales, clientesRes, pagosRes, frecuentesRes, balanceRes]) => {
+      const balances = balanceRes.data  // { cliente_id: saldo }
+      
       setDeudas([...pendientes.data, ...parciales.data])
       setClientes(clientesRes.data.filter(c => c.activo))
       setPagos(
@@ -50,18 +54,21 @@ function CuentaCorriente() {
           .filter(p => p.estado_pago === "pagado")
           .sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
       )
-      const todasDeudas      = [...pendientes.data, ...parciales.data]
-      const totalAdeudado    = todasDeudas.reduce((acc, d) => acc + Number(d.saldo_pendiente), 0)
-      const clientesConDeuda = new Set(todasDeudas.map(d => d.cliente_id)).size
-      const cobradoEsteMes   = pagosRes.data
-        .filter(p => {
-          const fechaPago = new Date(p.fecha_pago)
-          const hoy = new Date()
-          return p.estado_pago === "pagado" &&
-            fechaPago.getMonth()    === hoy.getMonth() &&
-            fechaPago.getFullYear() === hoy.getFullYear()
-        })
-        .reduce((acc, p) => acc + Number(p.monto), 0)
+      setBalances(balances)
+      const totalAdeudado    = Object.values(balances).filter(s => s > 0).reduce((acc, s) => acc + s, 0)
+      const clientesConDeuda = Object.values(balances).filter(s => s > 0).length
+
+      const cobradoEsteMes = pagosRes.data
+      .filter(p => {
+        const fechaPago = new Date(p.fecha_pago)
+        const hoy = new Date()
+        return p.estado_pago === "pagado" &&
+          p.tipo_pago !== "saldo_favor" &&        // ← agregar
+          fechaPago.getMonth()    === hoy.getMonth() &&
+          fechaPago.getFullYear() === hoy.getFullYear()
+      })
+      .reduce((acc, p) => acc + Number(p.monto), 0)
+
       const turnosCompletados = frecuentesRes.data.reduce((acc, c) => acc + (c.total_turnos || 0), 0)
       setResumen({ totalAdeudado, clientesConDeuda, cobradoEsteMes, turnosCompletados })
     }).catch(console.error)
@@ -104,9 +111,8 @@ function CuentaCorriente() {
 
   const deudasPorCliente = clientes.map(cliente => {
     const deudasCliente = deudas.filter(d => d.cliente_id === cliente.id)
-    const total = deudasCliente.reduce((acc, d) => acc + Number(d.saldo_pendiente), 0)
-    const saldoNeto = total - Number(cliente.saldo_favor || 0)
-    return { ...cliente, deudasCliente, total, saldoNeto }
+    const saldoNeto     = balances[cliente.id] ?? 0
+    return { ...cliente, deudasCliente, total: saldoNeto, saldoNeto }
   }).sort((a, b) => b.saldoNeto - a.saldoNeto)
 
   // ── Filtros ──

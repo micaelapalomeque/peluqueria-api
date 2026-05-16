@@ -289,3 +289,35 @@ def ranking_deudas(db: Session = Depends(get_db)):
 
     resultados.sort(key=lambda r: r["total"], reverse=True)
     return resultados[:10]
+
+@router.get("/balance/todos")
+def balance_todos_clientes(db: Session = Depends(get_db)):
+    clientes = db.query(models.Cliente).filter(models.Cliente.activo == True).all()
+    resultado = {}
+
+    for cliente in clientes:
+        turnos = (
+            db.query(models.Turno)
+            .filter(
+                models.Turno.cliente_id == cliente.id,
+                models.Turno.estado.notin_(["cancelado", "reservado"])  # ← sacá "ausente"
+            )
+            .all()
+        )
+        pagos = (
+            db.query(models.Pago)
+            .filter(
+                models.Pago.cliente_id == cliente.id,
+                models.Pago.estado_pago == "pagado",
+                models.Pago.tipo_pago.notin_(["propina", "recargo"])
+            )
+            .all()
+        )
+
+        total_debe  = sum(float(t.monto_cobrado or t.monto_total) for t in turnos)
+        total_haber = sum(float(p.monto) for p in pagos)
+        saldo       = round(total_debe - total_haber, 2)
+
+        resultado[cliente.id] = saldo
+
+    return resultado
